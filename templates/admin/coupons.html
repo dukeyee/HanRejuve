@@ -30,6 +30,12 @@
         <div class="actions">
           <a class="btn ghost sm" href="{{ url_for('admin_coupon_edit', cid=c.id) }}">編輯</a>
           {% if c.active %}<a class="btn sm" href="{{ url_for('admin_coupon_send', coupon=c.id) }}">發送</a>{% endif %}
+          {% set unused = c.issued - c.used %}
+          <form method="post" action="{{ url_for('admin_coupon_edit', cid=c.id) }}"
+                data-confirm="確定要刪除優惠券「{{ c.name }}」？{% if unused %}目前有 {{ unused }} 位會員持有還沒使用的這張券，會一併移除。{% endif %}已用在預約上的紀錄會保留。此操作無法復原。">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="delete">
+            <button class="btn danger sm">刪除</button>
+          </form>
         </div>
       </td>
     </tr>

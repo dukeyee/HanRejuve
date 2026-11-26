@@ -163,6 +163,7 @@ CREATE TABLE IF NOT EXISTS coupons (
     signup_gift INTEGER NOT NULL DEFAULT 0,     -- 1 = 新會員註冊自動贈送
     once_per_user INTEGER NOT NULL DEFAULT 1,   -- 1 = 每人限領一次
     active INTEGER NOT NULL DEFAULT 1,
+    deleted INTEGER NOT NULL DEFAULT 0,         -- 1 = 已刪除（保留給已使用的預約紀錄）
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 CREATE TABLE IF NOT EXISTS coupon_services (
@@ -304,6 +305,8 @@ def init_db():
     if "service_note" not in bcols:   # 服務紀錄（客人看得到）
         db.execute("ALTER TABLE bookings ADD COLUMN service_note TEXT NOT NULL DEFAULT ''")
     ccols = {r["name"] for r in db.execute("PRAGMA table_info(coupons)")}
+    if "deleted" not in ccols:
+        db.execute("ALTER TABLE coupons ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
     if "image_en" not in ccols:
         db.execute("ALTER TABLE coupons ADD COLUMN image_en TEXT")
         for c in SEED_COUPONS:
@@ -629,7 +632,7 @@ def check_verification_code(user_id, code):
 
 def give_signup_gifts(user_id):
     db = get_db()
-    gifts = db.execute("SELECT * FROM coupons WHERE signup_gift = 1 AND active = 1 ORDER BY id").fetchall()
+    gifts = db.execute("SELECT * FROM coupons WHERE signup_gift = 1 AND active = 1 AND deleted = 0 ORDER BY id").fetchall()
     if not gifts:
         return 0
     shop = get_settings()["shop_name"]
@@ -1509,7 +1512,7 @@ def admin_coupons():
         "SELECT c.*, "
         "(SELECT COUNT(*) FROM user_coupons uc WHERE uc.coupon_id = c.id) AS issued, "
         "(SELECT COUNT(*) FROM user_coupons uc WHERE uc.coupon_id = c.id AND uc.status = 'used') AS used "
-        "FROM coupons c ORDER BY c.active DESC, c.id DESC").fetchall()]
+        "FROM coupons c WHERE c.deleted = 0 ORDER BY c.active DESC, c.id DESC").fetchall()]
     smap = coupon_services_map([r["id"] for r in rows])
     for r in rows:
         r["services"] = smap.get(r["id"], [])
@@ -1521,10 +1524,22 @@ def admin_coupons():
 @admin_required
 def admin_coupon_edit(cid=None):
     db = get_db()
-    cp = db.execute("SELECT * FROM coupons WHERE id = ?", (cid,)).fetchone() if cid else None
+    cp = db.execute("SELECT * FROM coupons WHERE id = ? AND deleted = 0", (cid,)).fetchone() if cid else None
     if cid and not cp:
         abort(404)
     selected = {r[0] for r in db.execute("SELECT service_id FROM coupon_services WHERE coupon_id = ?", (cid,))} if cp else set()
+    if request.method == "POST" and request.form.get("action") == "delete" and cp:
+        # 會員手上未使用的券一併移除；已使用的保留在預約紀錄中
+        removed = db.execute("DELETE FROM user_coupons WHERE coupon_id = ? AND status = 'unused'", (cid,)).rowcount
+        if db.execute("SELECT 1 FROM user_coupons WHERE coupon_id = ?", (cid,)).fetchone():
+            db.execute("UPDATE coupons SET deleted = 1, active = 0, signup_gift = 0 WHERE id = ?", (cid,))
+        else:
+            db.execute("DELETE FROM coupon_services WHERE coupon_id = ?", (cid,))
+            db.execute("DELETE FROM coupons WHERE id = ?", (cid,))
+        flash(f"優惠券「{cp['name']}」已刪除" + (f"，並移除 {removed} 位會員未使用的券" if removed else ""), "success")
+        return redirect(url_for("admin_coupons"))
+    unused_holders = db.execute("SELECT COUNT(*) FROM user_coupons WHERE coupon_id = ? AND status = 'unused'",
+                                (cid,)).fetchone()[0] if cp else 0
     if request.method == "POST":
         f = request.form
         name = f.get("name", "").strip()
@@ -1566,7 +1581,7 @@ def admin_coupon_edit(cid=None):
                     db.execute("INSERT OR IGNORE INTO coupon_services(coupon_id, service_id) VALUES (?, ?)", (cid, sid))
                 flash("優惠券已儲存", "success")
                 return redirect(url_for("admin_coupons"))
-    return render_template("admin/coupon_form.html", cp=cp, selected=selected,
+    return render_template("admin/coupon_form.html", cp=cp, selected=selected, unused_holders=unused_holders,
                            catalog=load_catalog(active_only=False))
 
 
@@ -1574,11 +1589,11 @@ def admin_coupon_edit(cid=None):
 @admin_required
 def admin_coupon_send():
     db = get_db()
-    coupons = db.execute("SELECT * FROM coupons WHERE active = 1 ORDER BY id DESC").fetchall()
+    coupons = db.execute("SELECT * FROM coupons WHERE active = 1 AND deleted = 0 ORDER BY id DESC").fetchall()
     members = db.execute("SELECT id, name, phone, email FROM users WHERE is_admin = 0 ORDER BY created_at DESC").fetchall()
     f = request.form
     if request.method == "POST":
-        cp = db.execute("SELECT * FROM coupons WHERE id = ? AND active = 1", (f.get("coupon_id", type=int),)).fetchone()
+        cp = db.execute("SELECT * FROM coupons WHERE id = ? AND active = 1 AND deleted = 0", (f.get("coupon_id", type=int),)).fetchone()
         if f.get("target") == "all":
             uids = [m["id"] for m in members]
         else:

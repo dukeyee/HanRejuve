@@ -443,6 +443,7 @@ PHRASES = {
         "Precision Tech · Safe Fat Dissolving · Sculpt Confident Curves. One-Time Trial RM788 / 4-Session Course RM2688 (One Course). FREE: Worth RM988 One Double Chin Fat Dissolving.",
     "服務分成「主項目」和「子項目」。客人點開主項目後選擇子項目預約。主項目下只有一個同名子項目時，客人可以直接選擇，不用展開。價格不會顯示給客人，只用於營收統計。":
         "Treatments are grouped into categories. Customers open a category, then pick a treatment. A category with a single treatment of the same name can be picked directly. Prices are not shown to customers and are only used for revenue reports.",
+    "刪除優惠券": "Delete coupon",
     # 服務紀錄
     "服務紀錄": "Service record",
     "（客人在「我的預約」看得到）": "(visible to the customer in My Bookings)",
@@ -518,6 +519,12 @@ PHRASES = {
 
 # ---------------------------------------------------------------- 含變數的句子
 PATTERNS = [
+    (r"確定要刪除優惠券「(.+?)」？(?:目前有 (\d+) 位會員持有還沒使用的這張券，會一併移除。)?已用在預約上的紀錄會保留。此操作無法復原。",
+     lambda m: f"Delete coupon {m.group(1)}? "
+               + (f"{m.group(2)} members hold an unused copy, which will also be removed. " if m.group(2) else "")
+               + "Records already used for bookings are kept. This cannot be undone."),
+    (r"優惠券「(.+?)」已刪除", r"Coupon \1 deleted"),
+    (r"，並移除 (\d+) 位會員未使用的券", r"; \1 unused copies removed from members"),
     (r"例如療程前後對比照。每筆預約最多 (\d+) 張，目前 (\d+) 張。照片只有這位客人和管理員看得到。",
      r"e.g. before-and-after photos. Up to \1 photos per booking, currently \2. Only this customer and admins can see them."),
     (r"，新增 (\d+) 張照片", r", \1 photos added"),
