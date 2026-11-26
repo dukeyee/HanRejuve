@@ -665,3 +665,5 @@ html.hr-intro .intro {
 }
 
 .nav a, .nav button { white-space: nowrap; }
+
+.icon-badge[hidden] { display: none; }

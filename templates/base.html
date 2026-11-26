@@ -58,6 +58,10 @@
           {{ icon('mail') }}{% if unread %}<span class="icon-badge">{{ unread if unread < 100 else '99+' }}</span>{% endif %}</a>
         <a class="icon-btn {{ 'active' if ep == 'my_coupons' }}" href="{{ url_for('my_coupons') }}" title="我的優惠券" aria-label="我的優惠券">{{ icon('ticket') }}</a>
       {% endif %}
+      {% if current_user and current_user.is_admin %}
+        <a class="icon-btn {{ 'active' if ep == 'admin_chat' }}" href="{{ url_for('admin_chat') }}" title="客服訊息" aria-label="客服訊息">
+          {{ icon('chat') }}<span class="icon-badge" id="nav-chat-badge" data-api="{{ url_for('admin_api_chat_list') }}" {{ 'hidden' if not chat_unread }}>{{ chat_unread }}</span></a>
+      {% endif %}
       {% if current_user %}
         <a class="icon-btn {{ 'active' if ep == 'account' }}" href="{{ url_for('account') }}" title="我的帳號" aria-label="我的帳號">{{ icon('user') }}</a>
         <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
@@ -81,7 +85,6 @@
         <a href="{{ url_for('admin_services') }}" class="{{ 'active' if ep.startswith('admin_service') }}">服務項目</a>
         <a href="{{ url_for('admin_members') }}" class="{{ 'active' if ep.startswith('admin_member') }}">會員</a>
         <a href="{{ url_for('admin_coupons') }}" class="{{ 'active' if ep.startswith('admin_coupon') }}">優惠券</a>
-        <a href="{{ url_for('admin_chat') }}" class="{{ 'active' if ep == 'admin_chat' }}">客服訊息<span class="nav-badge" id="nav-chat-badge" data-api="{{ url_for('admin_api_chat_list') }}" {{ 'hidden' if not chat_unread }}>{{ chat_unread }}</span></a>
         <a href="{{ url_for('admin_messages') }}" class="{{ 'active' if ep in ('admin_messages', 'admin_announcement_new') }}">公告信件</a>
         <a href="{{ url_for('admin_settings') }}" class="{{ 'active' if ep == 'admin_settings' }}">營業設定</a>
       {% else %}
