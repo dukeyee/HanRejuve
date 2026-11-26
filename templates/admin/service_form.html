@@ -15,7 +15,6 @@
   <div class="field"><label for="name">子項目名稱</label><input id="name" type="text" name="name" value="{{ svc.name if svc }}" required></div>
   <div class="field"><label for="desc">介紹</label><textarea id="desc" name="description">{{ svc.description if svc }}</textarea></div>
   <div class="row">
-    <div class="field"><label for="dur">預計時長（分鐘）</label><input id="dur" type="number" name="duration" min="5" step="5" value="{{ svc.duration if svc else 60 }}" required><div class="hint">不會顯示給客人，只用來計算這段時間是否還有空位</div></div>
     <div class="field"><label for="price">參考價格</label><input id="price" type="number" name="price" min="0" value="{{ svc.price if svc else 0 }}" required><div class="hint">不會顯示給客人，只用於後台營收統計（實際價格依現場而定）</div></div>
   </div>
   <div class="row">

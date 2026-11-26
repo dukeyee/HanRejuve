@@ -441,6 +441,22 @@ PHRASES = {
     "無創穴位瘦身": "Acu-Point Weight Loss",
     "精準科技・安全溶脂・塑造自信曲線。一次體驗 RM788｜四次療程 RM2688（一個療程）。送價值 RM988 一次雙下巴溶脂。":
         "Precision Tech · Safe Fat Dissolving · Sculpt Confident Curves. One-Time Trial RM788 / 4-Session Course RM2688 (One Course). FREE: Worth RM988 One Double Chin Fat Dissolving.",
+    "服務分成「主項目」和「子項目」。客人點開主項目後選擇子項目預約。主項目下只有一個同名子項目時，客人可以直接選擇，不用展開。價格不會顯示給客人，只用於營收統計。":
+        "Treatments are grouped into categories. Customers open a category, then pick a treatment. A category with a single treatment of the same name can be picked directly. Prices are not shown to customers and are only used for revenue reports.",
+    # 服務紀錄
+    "服務紀錄": "Service record",
+    "（客人在「我的預約」看得到）": "(visible to the customer in My Bookings)",
+    "這是非會員預約，客人沒有帳號可以查看服務紀錄。": "This is a guest booking, so the customer has no account to view the record.",
+    "給客人的備註": "Notes for the customer",
+    "例如：今日療程內容、使用產品、居家保養建議、下次建議回診時間…": "e.g. treatment done today, products used, home care tips, suggested next visit…",
+    "新增照片（可一次選多張）": "Add photos (you can select several)",
+    "儲存服務紀錄": "Save service record",
+    "確定要刪除這張照片？客人將不再看到。": "Delete this photo? The customer will no longer see it.",
+    "刪除照片": "Delete photo",
+    "照片已刪除": "Photo deleted",
+    "服務紀錄已儲存": "Service record saved",
+    "單張圖片請小於 15MB": "Each image must be under 15MB",
+    "檔案太大，一次上傳的照片合計請小於 60MB，可以分幾次上傳": "Upload too large. Keep each upload under 60MB in total, or upload in several batches.",
     # Email 驗證
     "Email 驗證": "Email Verification",
     "驗證碼已寄到": "We sent a verification code to",
@@ -502,6 +518,10 @@ PHRASES = {
 
 # ---------------------------------------------------------------- 含變數的句子
 PATTERNS = [
+    (r"例如療程前後對比照。每筆預約最多 (\d+) 張，目前 (\d+) 張。照片只有這位客人和管理員看得到。",
+     r"e.g. before-and-after photos. Up to \1 photos per booking, currently \2. Only this customer and admins can see them."),
+    (r"，新增 (\d+) 張照片", r", \1 photos added"),
+    (r"每筆預約最多 (\d+) 張照片，目前已有 (\d+) 張", r"Up to \1 photos per booking; this booking already has \2"),
     (r"請到信箱查看 6 位數驗證碼（(\d+) 分鐘內有效）。", r"Check your inbox for the 6-digit code (valid for \1 minutes)."),
     (r"Email 驗證成功，歡迎加入 (.+?)，(.+?)！", r"Email verified. Welcome to \1, \2! "),
     (r"請等 (\d+) 秒後再重新寄送", r"Please wait \1 seconds before resending"),

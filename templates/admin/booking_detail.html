@@ -15,7 +15,7 @@
     <dl class="info">
       <dt>服務</dt><dd>{{ b.service_name }}</dd>
       <dt>日期</dt><dd>{{ b.date }}（週{{ b.date|weekday }}）</dd>
-      <dt>時間</dt><dd>{{ b.start_time }} – {{ b.end_time }}（{{ b.duration }} 分鐘）</dd>
+      <dt>時間</dt><dd>{{ b.start_time }}</dd>
       <dt>價格</dt><dd>{{ b.price|money }}{% if b.coupon_name %} <span class="muted small">（原價 {{ b.list_price|money }}）</span>{% endif %}</dd>
       {% if b.coupon_name %}<dt>優惠券</dt><dd>🎫 {{ b.coupon_name }}</dd>{% endif %}
       <dt>顧客備註</dt><dd>{{ b.note or '—' }}</dd>
@@ -40,6 +40,41 @@
       {{ status_btn(b.id, k, '設為「' ~ v ~ '」', 'danger' if k in ('cancelled', 'no_show') else ('' if k in ('confirmed','completed') else 'ghost')) }}
     {% endfor %}
   </div>
+</div>
+
+<div class="card" id="record">
+  <h2>服務紀錄 <span class="muted small">（客人在「我的預約」看得到）</span></h2>
+  {% if not b.user_id %}<p class="muted small">這是非會員預約，客人沒有帳號可以查看服務紀錄。</p>{% endif %}
+
+  {% if photos %}
+  {% set gallery = [] %}{% for p in photos %}{% set _ = gallery.append([url_for('booking_photo', pid=p.id), loop.index ~ ' / ' ~ photos|length]) %}{% endfor %}
+  <div class="record-photos">
+    {% for p in photos %}
+    <div class="record-photo">
+      <a href="{{ url_for('booking_photo', pid=p.id) }}" data-viewer="{{ gallery|tojson|forceescape }}" data-viewer-start="{{ loop.index0 }}">
+        <img src="{{ url_for('booking_photo', pid=p.id) }}" alt="" loading="lazy">
+      </a>
+      <form method="post" action="{{ url_for('admin_booking_record', bid=b.id) }}" data-confirm="確定要刪除這張照片？客人將不再看到。">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="delete_photo"><input type="hidden" name="photo_id" value="{{ p.id }}">
+        <button class="photo-del danger" aria-label="刪除照片" title="刪除照片">×</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('admin_booking_record', bid=b.id) }}" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="save">
+    <div class="field"><label for="service_note">給客人的備註</label>
+      <textarea id="service_note" name="service_note" rows="4" maxlength="3000"
+                placeholder="例如：今日療程內容、使用產品、居家保養建議、下次建議回診時間…">{{ b.service_note }}</textarea></div>
+    <div class="field"><label for="photos">新增照片（可一次選多張）</label>
+      <input id="photos" type="file" name="photos" accept="image/*" multiple>
+      <div class="hint">例如療程前後對比照。每筆預約最多 {{ max_photos }} 張，目前 {{ photos|length }} 張。照片只有這位客人和管理員看得到。</div></div>
+    <button class="btn">儲存服務紀錄</button>
+  </form>
 </div>
 
 <div class="card">

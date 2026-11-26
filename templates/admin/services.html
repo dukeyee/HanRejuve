@@ -5,7 +5,7 @@
   <h1>服務項目</h1>
   <a class="btn" href="{{ url_for('admin_service_edit') }}">＋ 新增子項目</a>
 </div>
-<p class="muted small">服務分成「主項目」和「子項目」。客人點開主項目後選擇子項目預約。主項目下只有一個同名子項目時，客人可以直接選擇，不用展開。時長與價格不會顯示給客人：時長用來計算時段是否有空位，價格只用於營收統計。</p>
+<p class="muted small">服務分成「主項目」和「子項目」。客人點開主項目後選擇子項目預約。主項目下只有一個同名子項目時，客人可以直接選擇，不用展開。價格不會顯示給客人，只用於營收統計。</p>
 
 <details class="card" style="margin-bottom:18px">
   <summary style="cursor:pointer"><strong>＋ 新增主項目</strong></summary>
@@ -51,13 +51,12 @@
   {% if c.services %}
   <div class="table-wrap">
   <table class="responsive">
-    <thead><tr><th>排序</th><th>子項目</th><th>預計時長</th><th>參考價格</th><th>狀態</th><th>預約數</th><th></th></tr></thead>
+    <thead><tr><th>排序</th><th>子項目</th><th>參考價格</th><th>狀態</th><th>預約數</th><th></th></tr></thead>
     <tbody>
     {% for s in c.services %}
     <tr>
       <td data-label="排序">{{ s.sort_order }}</td>
       <td data-label="子項目"><strong>{{ s.name }}</strong></td>
-      <td data-label="時長">{{ s.duration }} 分鐘</td>
       <td data-label="價格">{{ s.price|money }}</td>
       <td data-label="狀態">{% if s.active %}<span class="badge confirmed">開放</span>{% else %}<span class="badge cancelled">停用</span>{% endif %}</td>
       <td data-label="預約數">{{ counts.get(s.id, 0) }}</td>

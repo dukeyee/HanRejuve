@@ -85,6 +85,6 @@
     e.preventDefault();
     let items;
     try { items = JSON.parse(a.dataset.viewer); } catch (_) { items = [[a.getAttribute('href'), '']]; }
-    open(items, 0);
+    open(items, +a.dataset.viewerStart || 0);
   });
 })();

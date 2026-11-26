@@ -22,7 +22,7 @@
       <optgroup label="{{ c.name }}">
         {% for s in c.services %}
         <option value="{{ s.id }}" data-name="{{ s.full_name }}" data-duration="{{ s.duration }}" data-price="{{ s.price }}"
-                {{ 'selected' if (form.get('service_id') or 0)|int == s.id }}>{{ s.name }}（{{ s.duration }} 分 · {{ s.price|money }}）{% if not s.active or not c.active %} [停用]{% endif %}</option>
+                {{ 'selected' if (form.get('service_id') or 0)|int == s.id }}>{{ s.name }}{% if not s.active or not c.active %} [停用]{% endif %}</option>
         {% endfor %}
       </optgroup>
       {% endfor %}

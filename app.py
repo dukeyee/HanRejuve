@@ -12,7 +12,7 @@ import sqlite3
 from datetime import date, datetime, time, timedelta
 
 from flask import (Flask, abort, flash, g, jsonify, redirect, render_template,
-                   request, session, url_for)
+                   request, send_from_directory, session, url_for)
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -60,9 +60,13 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     PERMANENT_SESSION_LIFETIME=timedelta(days=14),
-    MAX_CONTENT_LENGTH=10 * 1024 * 1024,  # 上傳圖片上限 10MB
+    MAX_CONTENT_LENGTH=60 * 1024 * 1024,  # 單次上傳合計上限（可一次上傳多張手機照片）
 )
+MAX_IMAGE_BYTES = 15 * 1024 * 1024       # 單張圖片上限
 UPLOAD_DIR = os.path.join(BASE_DIR, "static", "uploads")
+# 客人的服務紀錄照片：放在非公開資料夾，只有該客人和管理員能透過網站看到
+PRIVATE_PHOTO_DIR = os.environ.get("HAN_PRIVATE_DIR", os.path.join(BASE_DIR, "private_uploads", "booking_photos"))
+MAX_PHOTOS_PER_BOOKING = 20
 ALLOWED_IMG = {"jpg", "jpeg", "png", "webp", "gif"}
 
 STATUS_LABELS = {
@@ -192,6 +196,13 @@ CREATE TABLE IF NOT EXISTS user_coupons (
     message_id INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_user_coupons_user ON user_coupons(user_id);
+CREATE TABLE IF NOT EXISTS booking_photos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_booking_photos ON booking_photos(booking_id);
 CREATE TABLE IF NOT EXISTS closed_dates (
     date TEXT PRIMARY KEY,
     reason TEXT NOT NULL DEFAULT ''
@@ -290,6 +301,8 @@ def init_db():
         db.execute("ALTER TABLE bookings ADD COLUMN user_coupon_id INTEGER")
     if "final_price" not in bcols:
         db.execute("ALTER TABLE bookings ADD COLUMN final_price INTEGER")
+    if "service_note" not in bcols:   # 服務紀錄（客人看得到）
+        db.execute("ALTER TABLE bookings ADD COLUMN service_note TEXT NOT NULL DEFAULT ''")
     ccols = {r["name"] for r in db.execute("PRAGMA table_info(coupons)")}
     if "image_en" not in ccols:
         db.execute("ALTER TABLE coupons ADD COLUMN image_en TEXT")
@@ -548,6 +561,7 @@ def send_message(user_id, title, body="", image=None, kind="announcement"):
                             (user_id, kind, title, body, image)).lastrowid
 
 
+DEFAULT_DURATION = 60      # 每個服務項目佔用的時段長度（分鐘）
 CODE_TTL_MIN = 10          # 驗證碼有效分鐘
 CODE_RESEND_SEC = 60       # 重寄冷卻秒數
 CODE_MAX_ATTEMPTS = 5      # 最多輸錯次數
@@ -641,15 +655,44 @@ def unread_count(user_id):
     return get_db().execute(f"SELECT COUNT(*) FROM ({sql}) WHERE is_read = 0", params).fetchone()[0]
 
 
+def _check_image(file):
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in ALLOWED_IMG:
+        raise ValueError("圖片只接受 JPG、PNG、WEBP、GIF 格式")
+    file.stream.seek(0, os.SEEK_END)
+    size = file.stream.tell()
+    file.stream.seek(0)
+    if size > MAX_IMAGE_BYTES:
+        raise ValueError("單張圖片請小於 15MB")
+    return "jpg" if ext == "jpeg" else ext
+
+
+def save_private_photo(file):
+    """儲存服務紀錄照片到非公開資料夾，回傳檔名。"""
+    ext = _check_image(file)
+    os.makedirs(PRIVATE_PHOTO_DIR, exist_ok=True)
+    name = f"{secrets.token_hex(12)}.{ext}"
+    file.save(os.path.join(PRIVATE_PHOTO_DIR, name))
+    return name
+
+
+def booking_photos_map(booking_ids):
+    if not booking_ids:
+        return {}
+    q = ",".join("?" * len(booking_ids))
+    out = {}
+    for r in get_db().execute(f"SELECT * FROM booking_photos WHERE booking_id IN ({q}) ORDER BY id", list(booking_ids)):
+        out.setdefault(r["booking_id"], []).append(dict(r))
+    return out
+
+
 def save_upload(file):
     """儲存上傳的圖片，回傳 static/ 底下的路徑；沒有檔案回傳 None。"""
     if not file or not file.filename:
         return None
-    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
-    if ext not in ALLOWED_IMG:
-        raise ValueError("圖片只接受 JPG、PNG、WEBP、GIF 格式")
+    ext = _check_image(file)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    name = f"{secrets.token_hex(8)}.{'jpg' if ext == 'jpeg' else ext}"
+    name = f"{secrets.token_hex(8)}.{ext}"
     file.save(os.path.join(UPLOAD_DIR, name))
     return "uploads/" + name
 
@@ -1022,7 +1065,8 @@ def my_bookings():
         item["can_cancel"] = r["status"] in ACTIVE_STATUSES and start_dt - datetime.now() >= timedelta(hours=cancel_h)
         (upcoming if key >= now_key and r["status"] in ACTIVE_STATUSES else past).append(item)
     upcoming.reverse()
-    return render_template("my_bookings.html", upcoming=upcoming, past=past)
+    photos = booking_photos_map([r["id"] for r in rows])
+    return render_template("my_bookings.html", upcoming=upcoming, past=past, photos=photos)
 
 
 @app.route("/my/<int:bid>/cancel", methods=["POST"])
@@ -1201,7 +1245,61 @@ def admin_booking_detail(bid):
             db.execute("UPDATE bookings SET admin_note = ? WHERE id = ?", (admin_note.strip()[:1000], bid))
         flash(f"預約 #{bid} 已更新", "success")
         return redirect(safe_next(request.form.get("back")) or url_for("admin_booking_detail", bid=bid))
-    return render_template("admin/booking_detail.html", b=b)
+    return render_template("admin/booking_detail.html", b=b, photos=booking_photos_map([bid]).get(bid, []),
+                           max_photos=MAX_PHOTOS_PER_BOOKING)
+
+
+@app.route("/admin/bookings/<int:bid>/record", methods=["POST"])
+@admin_required
+def admin_booking_record(bid):
+    """服務紀錄：給客人看的備註與照片。"""
+    db = get_db()
+    if not db.execute("SELECT 1 FROM bookings WHERE id = ?", (bid,)).fetchone():
+        abort(404)
+    action = request.form.get("action")
+    if action == "delete_photo":
+        p = db.execute("SELECT * FROM booking_photos WHERE id = ? AND booking_id = ?",
+                       (request.form.get("photo_id", type=int), bid)).fetchone()
+        if p:
+            db.execute("DELETE FROM booking_photos WHERE id = ?", (p["id"],))
+            try:
+                os.remove(os.path.join(PRIVATE_PHOTO_DIR, p["filename"]))
+            except OSError:
+                pass
+            flash("照片已刪除", "success")
+    else:
+        db.execute("UPDATE bookings SET service_note = ? WHERE id = ?",
+                   (request.form.get("service_note", "").strip()[:3000], bid))
+        files = [f for f in request.files.getlist("photos") if f and f.filename]
+        have = db.execute("SELECT COUNT(*) FROM booking_photos WHERE booking_id = ?", (bid,)).fetchone()[0]
+        if have + len(files) > MAX_PHOTOS_PER_BOOKING:
+            flash(f"每筆預約最多 {MAX_PHOTOS_PER_BOOKING} 張照片，目前已有 {have} 張", "error")
+            return redirect(url_for("admin_booking_detail", bid=bid) + "#record")
+        saved = 0
+        try:
+            for file in files:
+                name = save_private_photo(file)
+                db.execute("INSERT INTO booking_photos(booking_id, filename) VALUES (?, ?)", (bid, name))
+                saved += 1
+        except ValueError as e:
+            flash(str(e), "error")
+        flash("服務紀錄已儲存" + (f"，新增 {saved} 張照片" if saved else ""), "success")
+    return redirect(url_for("admin_booking_detail", bid=bid) + "#record")
+
+
+@app.route("/booking-photo/<int:pid>")
+def booking_photo(pid):
+    """服務紀錄照片：只有該預約的會員本人和管理員可以看。"""
+    u = current_user()
+    if not u:
+        abort(404)
+    row = get_db().execute("SELECT p.filename, b.user_id FROM booking_photos p JOIN bookings b ON b.id = p.booking_id "
+                           "WHERE p.id = ?", (pid,)).fetchone()
+    if not row or not (u["is_admin"] or row["user_id"] == u["id"]):
+        abort(404)
+    resp = send_from_directory(PRIVATE_PHOTO_DIR, row["filename"], max_age=0)
+    resp.headers["Cache-Control"] = "private, no-store"
+    return resp
 
 
 @app.route("/admin/bookings/new", methods=["GET", "POST"])
@@ -1290,10 +1388,10 @@ def admin_service_edit(sid=None):
                 flash("服務已刪除", "success")
             return redirect(url_for("admin_services"))
         name = f.get("name", "").strip()
-        duration = f.get("duration", type=int)
+        duration = svc["duration"] if svc else DEFAULT_DURATION  # 不在後台顯示，只用來計算時段佔用
         price = f.get("price", type=int)
-        if not name or not duration or duration < 5 or price is None or price < 0:
-            flash("請填寫名稱、時長（至少 5 分鐘）與價格", "error")
+        if not name or price is None or price < 0:
+            flash("請填寫名稱與價格", "error")
         else:
             vals = (f.get("category_id", type=int), name, f.get("description", "").strip(), duration, price,
                     1 if f.get("active") else 0, f.get("sort_order", type=int) or 0)
@@ -1511,7 +1609,7 @@ def admin_coupon_send():
 
 @app.errorhandler(413)
 def too_large(_e):
-    flash("檔案太大，圖片請小於 10MB", "error")
+    flash("檔案太大，一次上傳的照片合計請小於 60MB，可以分幾次上傳", "error")
     return redirect(request.referrer or url_for("admin_messages"))
 
 

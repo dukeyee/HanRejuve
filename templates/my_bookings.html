@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}我的預約 · {{ S.shop_name }}{% endblock %}
 {% block main_class %}medium{% endblock %}
-{% macro item(b) %}
+{% macro item(b, pics) %}
 <div class="booking-item">
   <div class="booking-date">
     <div class="dm">{{ b.date[5:7]|int }}月</div>
@@ -13,6 +13,22 @@
     <div class="muted small">{{ b.date }} · {{ b.start_time }}{% if b.coupon_name %} · 體驗價 {{ b.price|money }}{% endif %}</div>
     {% if b.coupon_name %}<div class="small" style="color:var(--gold)">🎫 已使用優惠券：{{ b.coupon_name }}</div>{% endif %}
     {% if b.note %}<div class="small">備註：{{ b.note }}</div>{% endif %}
+    {% if b.service_note or pics %}
+    <div class="service-record">
+      <div class="service-record-title">服務紀錄</div>
+      {% if b.service_note %}<div class="service-record-note">{{ b.service_note }}</div>{% endif %}
+      {% if pics %}
+      {% set gallery = [] %}{% for p in pics %}{% set _ = gallery.append([url_for('booking_photo', pid=p.id), loop.index ~ ' / ' ~ pics|length]) %}{% endfor %}
+      <div class="record-photos small-thumbs">
+        {% for p in pics %}
+        <a class="record-photo" href="{{ url_for('booking_photo', pid=p.id) }}" data-viewer="{{ gallery|tojson|forceescape }}" data-viewer-start="{{ loop.index0 }}">
+          <img src="{{ url_for('booking_photo', pid=p.id) }}" alt="" loading="lazy">
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
   {% if b.can_cancel %}
   <form method="post" action="{{ url_for('cancel_booking', bid=b.id) }}" data-confirm="確定要取消這筆預約嗎？">
@@ -27,7 +43,7 @@
 
 <div class="card">
   <h2>即將到來</h2>
-  {% for b in upcoming %}{{ item(b) }}{% else %}
+  {% for b in upcoming %}{{ item(b, photos.get(b.id, [])) }}{% else %}
   <div class="empty">目前沒有預約。<br><a href="{{ url_for('book') }}">馬上預約一次放鬆時光 →</a></div>
   {% endfor %}
   {% if upcoming %}<p class="muted small" style="margin:10px 0 0">如需取消，請於預約時間 {{ S.cancel_hours }} 小時前操作；之後請來電{% if S.shop_phone %} {{ S.shop_phone }}{% endif %}。</p>{% endif %}
@@ -36,7 +52,7 @@
 {% if past %}
 <div class="card">
   <h2>歷史紀錄</h2>
-  {% for b in past %}{{ item(b) }}{% endfor %}
+  {% for b in past %}{{ item(b, photos.get(b.id, [])) }}{% endfor %}
 </div>
 {% endif %}
 {% endblock %}

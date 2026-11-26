@@ -563,3 +563,19 @@ html.hr-intro .intro {
 .verify-change summary { cursor: pointer; text-align: center; }
 .link-btn { background: none; border: 0; padding: 4px 8px; cursor: pointer; font: inherit; text-decoration: underline; }
 .badge.unverified { background: var(--warn-soft); color: var(--warn); border-color: rgba(232,192,104,.3); }
+
+/* 服務紀錄（備註與照片） */
+.record-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.record-photos.small-thumbs { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; margin: 8px 0 0; }
+.record-photo { position: relative; display: block; aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 1px solid var(--line-gold); background: #050505; }
+.record-photo a, .record-photos.small-thumbs .record-photo { cursor: zoom-in; }
+.record-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.record-photo form { position: absolute; top: 4px; right: 4px; margin: 0; }
+.photo-del {
+  width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(227,138,127,.6); cursor: pointer;
+  background: rgba(10,10,10,.8); color: var(--bad); font-size: 1rem; line-height: 1; padding: 0;
+}
+.photo-del:hover { background: #b2493f; color: #fff; }
+.service-record { margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line-gold); background: var(--gold-soft); }
+.service-record-title { font-size: .78rem; letter-spacing: .12em; color: var(--gold); font-weight: 700; margin-bottom: 4px; }
+.service-record-note { font-size: .9rem; white-space: pre-line; line-height: 1.7; }
