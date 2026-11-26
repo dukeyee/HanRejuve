@@ -12,11 +12,15 @@
 | 方案 | 費用 | 網址 | 適合 |
 |---|---|---|---|
 | Beginner（免費） | 0 | `YOUR_USERNAME.pythonanywhere.com` | 先試用、給朋友看 |
-| Hacker（付費） | 約 USD 5／月 | 可用自己的網址，例如 `www.hanrejuve.com` | **正式營業** |
+| Developer（付費） | USD 10／月（年繳約 USD 100，送 2 個月） | 可用自己的網址，例如 `www.hanrejuve.com` | **正式營業** |
+
+（價格以 PythonAnywhere 官網 https://www.pythonanywhere.com/pricing/ 為準；付費方案 30 天內可退款。）
 
 免費方案的限制：
+- **不能寄 Email 驗證信**：免費方案只能連到特定網站，無法連 Gmail 寄信，
+  網站會停在「測試模式」（驗證碼直接顯示在畫面上），所以**正式營業一定要用付費方案**。
+- 不能設定每日自動備份（沒有 Scheduled tasks），要自己定期下載資料庫。
 - 每 3 個月要登入一次、按「Run until 3 months from today」延長，不然網站會暫停。
-- 對外連線有限制，若驗證信寄不出去，就需要升級付費方案。
 
 建議先用免費方案練習一次，確定沒問題再升級。升級後資料都會保留。
 
