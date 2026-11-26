@@ -553,3 +553,13 @@ html.hr-intro .intro {
 @keyframes introShine { 0% { top: 0; opacity: 1; } 92% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
 @keyframes introWord { to { opacity: 1; transform: none; } }
 @keyframes introOut { to { opacity: 0; visibility: hidden; } }
+
+/* Email 驗證頁 */
+.verify-email { font-size: 1.1rem; font-weight: 600; color: var(--gold-light); margin: 0 0 8px; word-break: break-all; }
+.code-input { text-align: center; font-size: 1.8rem !important; letter-spacing: .5em; font-family: "Courier New", monospace; padding: 12px !important; }
+.verify-dev { margin: 16px 0; }
+.dev-code { display: inline-block; margin-left: 6px; font-family: "Courier New", monospace; font-size: 1.2rem; font-weight: 700; letter-spacing: .2em; color: var(--gold-light); }
+.verify-change { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
+.verify-change summary { cursor: pointer; text-align: center; }
+.link-btn { background: none; border: 0; padding: 4px 8px; cursor: pointer; font: inherit; text-decoration: underline; }
+.badge.unverified { background: var(--warn-soft); color: var(--warn); border-color: rgba(232,192,104,.3); }

@@ -8,7 +8,7 @@
   <div class="card">
     <dl class="info">
       <dt>電話</dt><dd>{% if m.phone %}<a href="tel:{{ m.phone }}">{{ m.phone|phone }}</a>{% else %}—{% endif %}</dd>
-      <dt>Email</dt><dd>{{ m.email }}</dd>
+      <dt>Email</dt><dd>{{ m.email }} {% if m.email_verified %}<span class="badge confirmed">已驗證</span>{% else %}<span class="badge unverified">未驗證</span>{% endif %}</dd>
       <dt>加入日期</dt><dd>{{ m.created_at[:10] }}</dd>
       <dt>預約次數</dt><dd>{{ rows|length }}</dd>
       <dt>累計消費</dt><dd>{{ spent|money }}（已完成）</dd>
@@ -22,6 +22,12 @@
         <button class="btn ghost sm">重設密碼</button>
       </form>
       <a class="btn sm" href="{{ url_for('admin_coupon_send', uid=m.id) }}">🎫 發送優惠券</a>
+      {% if not m.email_verified %}
+      <form method="post" data-confirm="確定要手動驗證這位會員的 Email？（會同時送出新人體驗券）">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="verify_email">
+        <button class="btn ghost sm">手動驗證 Email</button>
+      </form>
+      {% endif %}
       {% if m.id != current_user.id %}
       <form method="post" data-confirm="確定要變更管理員權限？">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="toggle_admin">

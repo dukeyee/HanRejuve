@@ -1,0 +1,20 @@
+# HAN REJUVE 寄信設定（用來寄送註冊驗證碼）
+#
+# 使用方法：
+#   1. 用 hanrejuve2026@gmail.com 登入 Google，開啟「兩步驟驗證」
+#      https://myaccount.google.com/signinoptions/two-step-verification
+#   2. 到「應用程式密碼」頁面，建立一組密碼（名稱可填 HAN REJUVE 網站）
+#      https://myaccount.google.com/apppasswords
+#      Google 會給你 16 個英文字母的密碼，例如 abcd efgh ijkl mnop
+#   3. 把這個檔案「另存新檔」為 email_settings.txt（放在同一個資料夾）
+#   4. 在 email_settings.txt 的 SMTP_PASSWORD= 後面貼上那組密碼，存檔
+#   5. 重新啟動網站
+#
+# email_settings.txt 含有密碼，已設定不會上傳到 GitHub，請勿傳給別人。
+# 沒有 email_settings.txt 時網站為「測試模式」：不寄信，驗證碼直接顯示在畫面上。
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=hanrejuve2026@gmail.com
+SMTP_PASSWORD=
+MAIL_FROM_NAME=HAN REJUVE

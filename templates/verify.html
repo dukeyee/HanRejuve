@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Email 驗證 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+<div class="card auth-card">
+  <img class="auth-logo" src="{{ url_for('static', filename='img/monogram.png') }}" alt="{{ S.shop_name }}">
+  <h1>Email 驗證</h1>
+  <p class="center muted">驗證碼已寄到</p>
+  <p class="center verify-email">{{ current_user.email }}</p>
+  <p class="center muted small">請到信箱查看 6 位數驗證碼（{{ minutes }} 分鐘內有效）。<br>沒看到的話，請檢查「垃圾郵件」資料夾。</p>
+
+  {% if dev_code %}
+  <div class="flash info verify-dev">
+    <strong>測試模式</strong>：網站尚未設定寄信，所以驗證碼直接顯示在這裡：
+    <span class="dev-code">{{ dev_code }}</span>
+  </div>
+  {% endif %}
+
+  <form method="post" class="verify-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="verify">
+    <div class="field">
+      <label for="code">驗證碼</label>
+      <input id="code" class="code-input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code"
+             pattern="[0-9 ]{6,7}" maxlength="7" placeholder="000000" required autofocus>
+    </div>
+    <button class="btn block lg">完成驗證</button>
+  </form>
+
+  <form method="post" class="center" style="margin-top:14px">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="resend">
+    <button class="btn ghost sm" id="resend-btn" data-wait="{{ wait }}" {{ 'disabled' if wait }}>重新寄送驗證碼</button>
+    <div class="muted small" id="resend-hint" {{ 'hidden' if not wait }}><span id="resend-sec">{{ wait }}</span> 秒後可以重新寄送</div>
+  </form>
+
+  <details class="verify-change">
+    <summary class="muted small">Email 填錯了？</summary>
+    <form method="post" style="margin-top:10px">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="change_email">
+      <div class="field"><label for="new-email">正確的 Email</label>
+        <input id="new-email" type="email" name="email" required autocomplete="email" placeholder="name@gmail.com"></div>
+      <button class="btn ghost sm">更新並重新寄送</button>
+    </form>
+  </details>
+
+  <form method="post" action="{{ url_for('logout') }}" class="center" style="margin-top:16px">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button class="link-btn muted small">登出</button>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const btn = document.getElementById('resend-btn');
+  const hint = document.getElementById('resend-hint');
+  const sec = document.getElementById('resend-sec');
+  let left = +btn.dataset.wait || 0;
+  if (!left) return;
+  const t = setInterval(() => {
+    left -= 1; sec.textContent = left;
+    if (left <= 0) { clearInterval(t); btn.disabled = false; hint.hidden = true; }
+  }, 1000);
+})();
+</script>
+{% endblock %}

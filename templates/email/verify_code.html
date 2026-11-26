@@ -1,0 +1,29 @@
+<!doctype html>
+<html><body style="margin:0;padding:0;background:#0a0a0a;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:32px 12px;">
+  <tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+           style="max-width:460px;background:#151311;border:1px solid #6b5a36;border-radius:14px;font-family:Arial,'Microsoft JhengHei','PingFang TC',sans-serif;color:#f2e8d5;">
+      <tr><td align="center" style="padding:30px 28px 8px;">
+        <div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;letter-spacing:4px;color:#d4af69;">HR</div>
+        <div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;letter-spacing:6px;color:#d4af69;margin-top:2px;">{{ S.shop_name }}</div>
+      </td></tr>
+      <tr><td style="padding:18px 28px 0;font-size:15px;line-height:1.7;">
+        {% if en %}Hi {{ user.name }},<br>Here is your verification code:{% else %}{{ user.name }} 您好：<br>您的會員註冊驗證碼是：{% endif %}
+      </td></tr>
+      <tr><td align="center" style="padding:18px 28px;">
+        <div style="display:inline-block;padding:14px 26px;border:1px solid #d4af69;border-radius:10px;background:#1f1a12;
+                    font-size:34px;font-weight:bold;letter-spacing:10px;color:#f3d998;font-family:'Courier New',monospace;">{{ code }}</div>
+      </td></tr>
+      <tr><td style="padding:0 28px 28px;font-size:13px;line-height:1.7;color:#a3967f;">
+        {% if en %}
+          This code expires in {{ minutes }} minutes. If you did not sign up at {{ S.shop_name }}, please ignore this email.
+        {% else %}
+          驗證碼 {{ minutes }} 分鐘內有效。如果您沒有註冊 {{ S.shop_name }} 會員，請忽略這封信。
+        {% endif %}
+      </td></tr>
+    </table>
+    <div style="font-family:Arial,sans-serif;font-size:11px;color:#6d6455;margin-top:14px;">AESTHETIC · ANTI-AGING · REJUVENATION</div>
+  </td></tr>
+</table>
+</body></html>

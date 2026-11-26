@@ -8,6 +8,8 @@
 secret_key.txt
 admin_initial_password.txt
 .env
+# 寄信設定（含 Gmail 應用程式密碼）
+email_settings.txt
 
 # 管理員上傳的圖片（只保留資料夾）
 static/uploads/*

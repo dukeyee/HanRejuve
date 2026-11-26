@@ -3,6 +3,8 @@
 Flask + SQLite。執行：python app.py  然後開啟 http://127.0.0.1:5000
 """
 import functools
+import hashlib
+import hmac
 import os
 import re
 import secrets
@@ -15,6 +17,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import i18n
+import mailer
 
 try:  # 簡體 → 繁體自動轉換
     from opencc import OpenCC
@@ -98,7 +101,15 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT NOT NULL UNIQUE COLLATE NOCASE,
     password_hash TEXT NOT NULL,
     is_admin INTEGER NOT NULL DEFAULT 0,
+    email_verified INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE TABLE IF NOT EXISTS email_codes (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    code_hash TEXT NOT NULL,
+    expires_at TEXT NOT NULL,      -- ISO 時間
+    sent_at TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -269,6 +280,10 @@ def init_db():
     db.execute("CREATE INDEX IF NOT EXISTS idx_services_cat ON services(category_id)")
     if db.execute("SELECT COUNT(*) FROM services").fetchone()[0] == 0:
         seed_catalog(db)
+    ucols = {r["name"] for r in db.execute("PRAGMA table_info(users)")}
+    if "email_verified" not in ucols:
+        db.execute("ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0")
+        db.execute("UPDATE users SET email_verified = 1")
     # 舊版資料庫升級：bookings 加上優惠券與實際價格欄位
     bcols = {r["name"] for r in db.execute("PRAGMA table_info(bookings)")}
     if "user_coupon_id" not in bcols:
@@ -288,7 +303,7 @@ def init_db():
     if db.execute("SELECT COUNT(*) FROM users WHERE is_admin = 1").fetchone()[0] == 0:
         pw = secrets.token_urlsafe(9)
         db.execute(
-            "INSERT INTO users(name, phone, email, password_hash, is_admin) VALUES (?,?,?,?,1)",
+            "INSERT INTO users(name, phone, email, password_hash, is_admin, email_verified) VALUES (?,?,?,?,1,1)",
             ("管理員", "", DEFAULT_ADMIN_EMAIL, generate_password_hash(pw)),
         )
         with open(ADMIN_PW_FILE, "w", encoding="utf-8") as f:
@@ -533,6 +548,71 @@ def send_message(user_id, title, body="", image=None, kind="announcement"):
                             (user_id, kind, title, body, image)).lastrowid
 
 
+CODE_TTL_MIN = 10          # 驗證碼有效分鐘
+CODE_RESEND_SEC = 60       # 重寄冷卻秒數
+CODE_MAX_ATTEMPTS = 5      # 最多輸錯次數
+
+
+def _code_hash(user_id, code):
+    return hmac.new(app.config["SECRET_KEY"].encode(), f"{user_id}:{code}".encode(), hashlib.sha256).hexdigest()
+
+
+def resend_wait(user_id):
+    """距離可以重寄還要幾秒；0 = 可以寄。"""
+    row = get_db().execute("SELECT sent_at FROM email_codes WHERE user_id = ?", (user_id,)).fetchone()
+    if not row:
+        return 0
+    passed = (datetime.now() - datetime.fromisoformat(row["sent_at"])).total_seconds()
+    return max(0, int(CODE_RESEND_SEC - passed))
+
+
+def send_verification_code(user):
+    """產生並寄出驗證碼。回傳 'sent' | 'dev'（未設定寄信，測試模式）| 'error'。"""
+    code = f"{secrets.randbelow(1000000):06d}"
+    now = datetime.now()
+    get_db().execute(
+        "INSERT OR REPLACE INTO email_codes(user_id, code_hash, expires_at, sent_at, attempts) VALUES (?,?,?,?,0)",
+        (user["id"], _code_hash(user["id"], code), (now + timedelta(minutes=CODE_TTL_MIN)).isoformat(), now.isoformat()))
+    if not mailer.is_configured():
+        session["dev_code"] = code
+        print(f"[HAN REJUVE] 測試模式驗證碼 {user['email']}: {code}")
+        return "dev"
+    session.pop("dev_code", None)
+    shop = get_settings()["shop_name"]
+    en = is_english()
+    subject = f"{shop} verification code: {code}" if en else f"{shop} 驗證碼：{code}"
+    if en:
+        text = (f"Hi {user['name']},\n\nYour verification code is {code}\n"
+                f"It expires in {CODE_TTL_MIN} minutes.\n\n"
+                f"If you did not sign up at {shop}, please ignore this email.\n")
+    else:
+        text = (f"{user['name']} 您好：\n\n您的驗證碼是 {code}\n"
+                f"{CODE_TTL_MIN} 分鐘內有效。\n\n"
+                f"如果您沒有註冊 {shop} 會員，請忽略這封信。\n")
+    html = render_template("email/verify_code.html", user=user, code=code, minutes=CODE_TTL_MIN, en=en)
+    try:
+        mailer.send_mail(user["email"], subject, text, html)
+        return "sent"
+    except Exception as e:  # 帳密錯誤、連線失敗等
+        app.logger.error("寄送驗證碼失敗 %s: %s", user["email"], e)
+        return "error"
+
+
+def check_verification_code(user_id, code):
+    """回傳 'ok' | 'wrong' | 'expired' | 'locked'。"""
+    db = get_db()
+    row = db.execute("SELECT * FROM email_codes WHERE user_id = ?", (user_id,)).fetchone()
+    if not row or datetime.fromisoformat(row["expires_at"]) <= datetime.now():
+        return "expired"
+    if row["attempts"] >= CODE_MAX_ATTEMPTS:
+        return "locked"
+    if hmac.compare_digest(row["code_hash"], _code_hash(user_id, code)):
+        db.execute("DELETE FROM email_codes WHERE user_id = ?", (user_id,))
+        return "ok"
+    db.execute("UPDATE email_codes SET attempts = attempts + 1 WHERE user_id = ?", (user_id,))
+    return "locked" if row["attempts"] + 1 >= CODE_MAX_ATTEMPTS else "wrong"
+
+
 def give_signup_gifts(user_id):
     db = get_db()
     gifts = db.execute("SELECT * FROM coupons WHERE signup_gift = 1 AND active = 1 ORDER BY id").fetchall()
@@ -585,9 +665,12 @@ def current_user():
 def login_required(view):
     @functools.wraps(view)
     def wrapped(*a, **kw):
-        if not current_user():
+        u = current_user()
+        if not u:
             flash("請先登入會員", "info")
             return redirect(url_for("login", next=request.full_path))
+        if not u["email_verified"] and not u["is_admin"]:
+            return redirect(url_for("verify_email"))
         return view(*a, **kw)
     return wrapped
 
@@ -762,10 +845,14 @@ def register():
             reset_session()
             session.permanent = True
             session["uid"] = cur.lastrowid
-            gifts = give_signup_gifts(cur.lastrowid)
-            flash(f"歡迎加入 {get_settings()['shop_name']}，{name}！"
-                  + (f"已送你 {gifts} 張新人體驗券，請到「收件箱」查看。" if gifts else ""), "success")
-            return redirect(safe_next(request.args.get("next")) or (url_for("inbox") if gifts else url_for("book")))
+            nxt = safe_next(request.args.get("next"))
+            if nxt:
+                session["after_verify"] = nxt
+            user = get_db().execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone()
+            result = send_verification_code(user)
+            if result == "error":
+                flash("驗證信寄送失敗，請稍後按「重新寄送」再試一次", "error")
+            return redirect(url_for("verify_email"))
     return render_template("register.html", form=form)
 
 
@@ -782,6 +869,10 @@ def login():
             nxt = safe_next(request.args.get("next"))
             if user["is_admin"]:
                 return redirect(nxt or url_for("admin_dashboard"))
+            if not user["email_verified"]:
+                if nxt:
+                    session["after_verify"] = nxt
+                return redirect(url_for("verify_email"))
             return redirect(nxt or url_for("my_bookings"))
         flash("Email 或密碼錯誤", "error")
     return render_template("login.html", email=request.form.get("email", ""))
@@ -792,6 +883,63 @@ def logout():
     reset_session()
     flash("已登出", "info")
     return redirect(url_for("index"))
+
+
+@app.route("/verify", methods=["GET", "POST"])
+def verify_email():
+    """註冊後輸入 Email 驗證碼；可重寄、可修改填錯的 Email。"""
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    if u["email_verified"]:
+        return redirect(url_for("my_bookings"))
+    db = get_db()
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "verify":
+            code = re.sub(r"\D", "", request.form.get("code", ""))
+            result = check_verification_code(u["id"], code) if len(code) == 6 else "wrong"
+            if result == "ok":
+                db.execute("UPDATE users SET email_verified = 1 WHERE id = ?", (u["id"],))
+                session.pop("dev_code", None)
+                gifts = give_signup_gifts(u["id"])
+                flash(f"Email 驗證成功，歡迎加入 {get_settings()['shop_name']}，{u['name']}！"
+                      + (f"已送你 {gifts} 張新人體驗券，請到「收件箱」查看。" if gifts else ""), "success")
+                nxt = session.pop("after_verify", None)
+                return redirect(nxt or (url_for("inbox") if gifts else url_for("book")))
+            flash({"wrong": "驗證碼不正確，請再確認一次",
+                   "expired": "驗證碼已過期，請按「重新寄送」",
+                   "locked": "輸錯太多次，請按「重新寄送」取得新的驗證碼"}[result], "error")
+        elif action == "resend":
+            wait = resend_wait(u["id"])
+            if wait:
+                flash(f"請等 {wait} 秒後再重新寄送", "info")
+            else:
+                result = send_verification_code(u)
+                flash("驗證信寄送失敗，請稍後再試，或聯絡我們" if result == "error" else "已重新寄送驗證碼",
+                      "error" if result == "error" else "success")
+        elif action == "change_email":
+            email = request.form.get("email", "").strip().lower()
+            if not valid_email(email):
+                flash("Email 格式不正確，例如 name@gmail.com", "error")
+            elif email == u["email"].lower():
+                flash("這就是目前的 Email", "info")
+            elif db.execute("SELECT 1 FROM users WHERE email = ? AND id != ?", (email, u["id"])).fetchone():
+                flash("此 Email 已註冊，請直接登入", "error")
+            elif resend_wait(u["id"]):
+                flash(f"請等 {resend_wait(u['id'])} 秒後再修改", "info")
+            else:
+                db.execute("UPDATE users SET email = ? WHERE id = ?", (email, u["id"]))
+                u = db.execute("SELECT * FROM users WHERE id = ?", (u["id"],)).fetchone()
+                g.user = u
+                result = send_verification_code(u)
+                flash("Email 已更新，驗證碼已寄到新信箱" if result != "error" else "Email 已更新，但驗證信寄送失敗，請稍後重新寄送",
+                      "success" if result != "error" else "error")
+        return redirect(url_for("verify_email"))
+    if not db.execute("SELECT 1 FROM email_codes WHERE user_id = ?", (u["id"],)).fetchone():
+        send_verification_code(u)  # 從未寄過驗證碼時自動寄一封；過期的請客人按「重新寄送」
+    return render_template("verify.html", wait=resend_wait(u["id"]), dev_code=session.get("dev_code"),
+                           minutes=CODE_TTL_MIN, mail_ready=mailer.is_configured())
 
 
 @app.route("/book", methods=["GET", "POST"])
@@ -1189,6 +1337,12 @@ def admin_member_detail(uid):
             else:
                 db.execute("UPDATE users SET is_admin = ? WHERE id = ?", (0 if m["is_admin"] else 1, uid))
                 flash("權限已更新", "success")
+        elif request.form.get("action") == "verify_email":
+            if not m["email_verified"]:
+                db.execute("UPDATE users SET email_verified = 1 WHERE id = ?", (uid,))
+                db.execute("DELETE FROM email_codes WHERE user_id = ?", (uid,))
+                gifts = give_signup_gifts(uid)
+                flash("已手動驗證此會員的 Email" + (f"，並送出 {gifts} 張新人體驗券" if gifts else ""), "success")
         elif request.form.get("action") == "reset_password":
             pw = secrets.token_urlsafe(6)
             db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (generate_password_hash(pw), uid))

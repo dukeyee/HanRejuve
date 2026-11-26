@@ -13,7 +13,7 @@
     <tbody>
     {% for m in rows %}
     <tr class="clickable" onclick="location.href='{{ url_for('admin_member_detail', uid=m.id) }}'">
-      <td data-label="姓名"><a href="{{ url_for('admin_member_detail', uid=m.id) }}">{{ m.name }}</a>{% if m.is_admin %} <span class="badge admin">管理員</span>{% endif %}</td>
+      <td data-label="姓名"><a href="{{ url_for('admin_member_detail', uid=m.id) }}">{{ m.name }}</a>{% if m.is_admin %} <span class="badge admin">管理員</span>{% elif not m.email_verified %} <span class="badge unverified">未驗證</span>{% endif %}</td>
       <td data-label="電話">{{ m.phone|phone }}</td>
       <td data-label="Email">{{ m.email }}</td>
       <td data-label="預約次數">{{ m.cnt }}</td>
