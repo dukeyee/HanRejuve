@@ -81,6 +81,7 @@
         <a href="{{ url_for('admin_services') }}" class="{{ 'active' if ep.startswith('admin_service') }}">服務項目</a>
         <a href="{{ url_for('admin_members') }}" class="{{ 'active' if ep.startswith('admin_member') }}">會員</a>
         <a href="{{ url_for('admin_coupons') }}" class="{{ 'active' if ep.startswith('admin_coupon') }}">優惠券</a>
+        <a href="{{ url_for('admin_chat') }}" class="{{ 'active' if ep == 'admin_chat' }}">客服訊息<span class="nav-badge" id="nav-chat-badge" data-api="{{ url_for('admin_api_chat_list') }}" {{ 'hidden' if not chat_unread }}>{{ chat_unread }}</span></a>
         <a href="{{ url_for('admin_messages') }}" class="{{ 'active' if ep in ('admin_messages', 'admin_announcement_new') }}">公告信件</a>
         <a href="{{ url_for('admin_settings') }}" class="{{ 'active' if ep == 'admin_settings' }}">營業設定</a>
       {% else %}
@@ -115,6 +116,8 @@
 <script src="{{ url_for('static', filename='dialog.js') }}"></script>
 <script src="{{ url_for('static', filename='forms.js') }}"></script>
 <script src="{{ url_for('static', filename='viewer.js') }}"></script>
+{% if current_user and current_user.email_verified and not current_user.is_admin and not is_admin_area %}{% include "_chat_widget.html" %}{% endif %}
+{% if current_user and (current_user.is_admin or current_user.email_verified) %}<script src="{{ url_for('static', filename='chat.js') }}"></script>{% endif %}
 {% block scripts %}{% endblock %}
 </body>
 </html>

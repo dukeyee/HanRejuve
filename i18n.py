@@ -444,6 +444,34 @@ PHRASES = {
     "服務分成「主項目」和「子項目」。客人點開主項目後選擇子項目預約。主項目下只有一個同名子項目時，客人可以直接選擇，不用展開。價格不會顯示給客人，只用於營收統計。":
         "Treatments are grouped into categories. Customers open a category, then pick a treatment. A category with a single treatment of the same name can be picked directly. Prices are not shown to customers and are only used for revenue reports.",
     "刪除優惠券": "Delete coupon",
+    # 線上客服
+    "線上客服": "Live Chat",
+    "營業時間內我們會盡快回覆您": "We will reply as soon as possible during opening hours",
+    "您好！有任何關於療程、預約或優惠券的問題，都可以在這裡留言給我們。":
+        "Hello! Leave us a message here about treatments, bookings or coupons.",
+    "輸入訊息…": "Type a message…",
+    "輸入訊息": "Type a message",
+    "傳送": "Send",
+    "關閉": "Close",
+    "客服訊息": "Live Chat",
+    "新訊息每幾秒自動更新": "New messages appear automatically every few seconds",
+    "載入中…": "Loading…",
+    "請從左邊選擇一位會員": "Choose a member on the left",
+    "選擇對話後，訊息會顯示在這裡。": "Messages appear here after you choose a conversation.",
+    "回覆訊息…（Enter 送出，Shift+Enter 換行）": "Reply… (Enter to send, Shift+Enter for a new line)",
+    "回覆訊息": "Reply",
+    "💬 傳訊息": "💬 Message",
+    "傳送失敗，請再試一次": "Could not send. Please try again.",
+    "還沒有客服訊息": "No chat messages yet",
+    "你：": "You: ",
+    "會員資料": "Member profile",
+    "還沒有訊息，可以直接傳訊息給這位會員。": "No messages yet. You can message this member directly.",
+    "請輸入訊息": "Please type a message",
+    "訊息太長，請在 1000 字以內": "Message too long. Please keep it under 1000 characters.",
+    "訊息傳送太頻繁，請稍後再試": "You are sending messages too quickly. Please wait a moment.",
+    "無法使用客服": "Live chat is not available for this account",
+    "沒有權限": "Not allowed",
+    "找不到此會員": "Member not found",
     # 服務紀錄
     "服務紀錄": "Service record",
     "（客人在「我的預約」看得到）": "(visible to the customer in My Bookings)",
@@ -655,7 +683,10 @@ def translate_html(page):
 JS_STRINGS = [
     "請選擇預約時間", "請先選擇服務項目", "請選擇日期", "載入可預約時段…", "請選擇其他日期",
     "這天已無可預約時段，請選擇其他日期", "無法載入時段，請重新整理頁面", "尚未選擇服務", "分鐘",
-    "請選擇時間", "體驗價", "請確認", "提示", "確定", "取消", "返回", "上一張", "下一張", "Email 格式不正確，例如 name@gmail.com", "請輸入馬來西亞手機號碼，例如 12-345 6789",
+    "請選擇時間", "體驗價", "請確認", "提示", "確定", "取消", "返回", "上一張", "下一張",
+    "傳送失敗，請再試一次", "還沒有客服訊息", "你：", "會員資料", "還沒有訊息，可以直接傳訊息給這位會員。",
+    "請輸入訊息", "訊息太長，請在 1000 字以內", "訊息傳送太頻繁，請稍後再試", "請先登入會員", "無法使用客服",
+    "沒有權限", "找不到此會員", "Email 格式不正確，例如 name@gmail.com", "請輸入馬來西亞手機號碼，例如 12-345 6789",
 ]
 
 

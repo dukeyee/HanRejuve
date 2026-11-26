@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}客服訊息 · {{ S.shop_name }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>客服訊息</h1><span class="muted small">新訊息每幾秒自動更新</span></div>
+<div class="admin-chat {{ 'has-conv' if open_uid }}" id="admin-chat"
+     data-csrf="{{ csrf_token() }}" data-open-uid="{{ open_uid or '' }}"
+     data-list-api="{{ url_for('admin_api_chat_list') }}"
+     data-conv-base="{{ url_for('admin_api_chat', uid=0)[:-1] }}"
+     data-member-base="{{ url_for('admin_member_detail', uid=0)[:-1] }}">
+  <aside class="conv-list" id="conv-list"><div class="empty">載入中…</div></aside>
+  <section class="conv-view">
+    <div class="conv-head" id="admin-chat-head"><span class="muted">請從左邊選擇一位會員</span></div>
+    <div class="chat-body" id="admin-chat-body"><div class="chat-empty">選擇對話後，訊息會顯示在這裡。</div></div>
+    <form class="chat-form" id="admin-chat-form" hidden>
+      <textarea id="admin-chat-input" rows="1" maxlength="1000" placeholder="回覆訊息…（Enter 送出，Shift+Enter 換行）" aria-label="回覆訊息"></textarea>
+      <button class="chat-send" aria-label="傳送" title="傳送">{{ icon('send') }}</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

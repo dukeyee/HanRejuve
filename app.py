@@ -204,6 +204,17 @@ CREATE TABLE IF NOT EXISTS booking_photos (
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 CREATE INDEX IF NOT EXISTS idx_booking_photos ON booking_photos(booking_id);
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),   -- 對話所屬的會員
+    sender TEXT NOT NULL,                            -- member / admin
+    admin_id INTEGER REFERENCES users(id),           -- 回覆的管理員
+    body TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    read_by_admin INTEGER NOT NULL DEFAULT 0,
+    read_by_member INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_chat_user ON chat_messages(user_id, id);
 CREATE TABLE IF NOT EXISTS closed_dates (
     date TEXT PRIMARY KEY,
     reason TEXT NOT NULL DEFAULT ''
@@ -795,6 +806,7 @@ def inject_globals():
         "csrf_token": csrf_token,
         "current_user": u,
         "unread": unread_count(u["id"]) if u else 0,
+        "chat_unread": chat_unread_count(u) if u else 0,
         "S": get_settings(),
         "STATUS_LABELS": STATUS_LABELS,
         "WEEKDAY_LABELS": WEEKDAY_LABELS,
@@ -1626,6 +1638,130 @@ def admin_coupon_send():
 def too_large(_e):
     flash("檔案太大，一次上傳的照片合計請小於 60MB，可以分幾次上傳", "error")
     return redirect(request.referrer or url_for("admin_messages"))
+
+
+# ---------------------------------------------------------------- 線上客服
+CHAT_MAX_LEN = 1000
+CHAT_MAX_PER_MINUTE = 15
+
+
+def chat_unread_count(u):
+    db = get_db()
+    if u["is_admin"]:
+        return db.execute("SELECT COUNT(*) FROM chat_messages WHERE sender = 'member' AND read_by_admin = 0").fetchone()[0]
+    return db.execute("SELECT COUNT(*) FROM chat_messages WHERE user_id = ? AND sender = 'admin' AND read_by_member = 0",
+                      (u["id"],)).fetchone()[0]
+
+
+def chat_messages_for(user_id, after=0, limit=200):
+    db = get_db()
+    if after:
+        rows = db.execute("SELECT * FROM chat_messages WHERE user_id = ? AND id > ? ORDER BY id LIMIT ?",
+                          (user_id, after, limit)).fetchall()
+    else:   # 第一次載入：最近 100 則
+        rows = db.execute("SELECT * FROM (SELECT * FROM chat_messages WHERE user_id = ? ORDER BY id DESC LIMIT 100) "
+                          "ORDER BY id", (user_id,)).fetchall()
+    return [{"id": r["id"], "sender": r["sender"], "body": r["body"], "time": r["created_at"][5:16]} for r in rows]
+
+
+def chat_post(user_id, sender, body, admin_id=None):
+    """新增一則訊息；回傳 (訊息, 錯誤訊息)。"""
+    body = (body or "").strip()
+    if not body:
+        return None, "請輸入訊息"
+    if len(body) > CHAT_MAX_LEN:
+        return None, f"訊息太長，請在 {CHAT_MAX_LEN} 字以內"
+    db = get_db()
+    if sender == "member":
+        recent = db.execute("SELECT COUNT(*) FROM chat_messages WHERE user_id = ? AND sender = 'member' "
+                            "AND created_at >= datetime('now','localtime','-1 minute')", (user_id,)).fetchone()[0]
+        if recent >= CHAT_MAX_PER_MINUTE:
+            return None, "訊息傳送太頻繁，請稍後再試"
+    mid = db.execute(
+        "INSERT INTO chat_messages(user_id, sender, admin_id, body, read_by_admin, read_by_member) VALUES (?,?,?,?,?,?)",
+        (user_id, sender, admin_id, body, 1 if sender == "admin" else 0, 1 if sender == "member" else 0)).lastrowid
+    r = db.execute("SELECT * FROM chat_messages WHERE id = ?", (mid,)).fetchone()
+    return {"id": r["id"], "sender": r["sender"], "body": r["body"], "time": r["created_at"][5:16]}, None
+
+
+def member_api(view):
+    """客服 API：已驗證 Email 的會員才能使用（回傳 JSON 錯誤，不轉頁）。"""
+    @functools.wraps(view)
+    def wrapped(*a, **kw):
+        u = current_user()
+        if not u:
+            return jsonify({"ok": False, "error": "請先登入會員"}), 401
+        if u["is_admin"] or not u["email_verified"]:
+            return jsonify({"ok": False, "error": "無法使用客服"}), 403
+        return view(*a, **kw)
+    return wrapped
+
+
+def admin_api(view):
+    @functools.wraps(view)
+    def wrapped(*a, **kw):
+        u = current_user()
+        if not u or not u["is_admin"]:
+            return jsonify({"ok": False, "error": "沒有權限"}), 403
+        return view(*a, **kw)
+    return wrapped
+
+
+@app.route("/api/chat", methods=["GET", "POST"])
+@member_api
+def api_chat():
+    u = current_user()
+    if request.method == "POST":
+        msg, err = chat_post(u["id"], "member", request.form.get("body"))
+        if err:
+            return jsonify({"ok": False, "error": err}), 400
+        return jsonify({"ok": True, "message": msg})
+    if request.args.get("peek"):   # 只看未讀數（聊天視窗關閉時）
+        return jsonify({"ok": True, "unread": chat_unread_count(u)})
+    msgs = chat_messages_for(u["id"], request.args.get("after", type=int) or 0)
+    get_db().execute("UPDATE chat_messages SET read_by_member = 1 WHERE user_id = ? AND sender = 'admin' "
+                     "AND read_by_member = 0", (u["id"],))
+    return jsonify({"ok": True, "messages": msgs, "unread": 0})
+
+
+@app.route("/admin/chat")
+@admin_required
+def admin_chat():
+    return render_template("admin/chat.html", open_uid=request.args.get("uid", type=int))
+
+
+@app.route("/admin/api/chat")
+@admin_api
+def admin_api_chat_list():
+    rows = get_db().execute("""
+        SELECT u.id, u.name, u.phone, u.email, m.body AS last_body, m.sender AS last_sender, m.created_at AS last_time,
+               (SELECT COUNT(*) FROM chat_messages c WHERE c.user_id = u.id AND c.sender = 'member'
+                AND c.read_by_admin = 0) AS unread
+        FROM users u JOIN chat_messages m ON m.id = (SELECT MAX(id) FROM chat_messages WHERE user_id = u.id)
+        ORDER BY m.id DESC LIMIT 300""").fetchall()
+    return jsonify({"ok": True, "unread": chat_unread_count(current_user()), "conversations": [
+        {"uid": r["id"], "name": r["name"], "phone": phone_filter(r["phone"]), "email": r["email"],
+         "last": r["last_body"][:60], "last_sender": r["last_sender"], "time": r["last_time"][5:16], "unread": r["unread"]}
+        for r in rows]})
+
+
+@app.route("/admin/api/chat/<int:uid>", methods=["GET", "POST"])
+@admin_api
+def admin_api_chat(uid):
+    db = get_db()
+    m = db.execute("SELECT id, name, phone, email FROM users WHERE id = ? AND is_admin = 0", (uid,)).fetchone()
+    if not m:
+        return jsonify({"ok": False, "error": "找不到此會員"}), 404
+    if request.method == "POST":
+        msg, err = chat_post(uid, "admin", request.form.get("body"), admin_id=current_user()["id"])
+        if err:
+            return jsonify({"ok": False, "error": err}), 400
+        return jsonify({"ok": True, "message": msg})
+    msgs = chat_messages_for(uid, request.args.get("after", type=int) or 0)
+    db.execute("UPDATE chat_messages SET read_by_admin = 1 WHERE user_id = ? AND sender = 'member' AND read_by_admin = 0",
+               (uid,))
+    return jsonify({"ok": True, "member": {"uid": m["id"], "name": m["name"], "phone": phone_filter(m["phone"]),
+                                          "email": m["email"]}, "messages": msgs})
 
 
 @app.route("/admin/settings", methods=["GET", "POST"])

@@ -1,0 +1,22 @@
+{# 會員的線上客服：右下角按鈕 + 聊天視窗 #}
+<button type="button" class="chat-fab" id="chat-fab" aria-label="線上客服" title="線上客服">
+  {{ icon('chat') }}<span class="chat-fab-badge" id="chat-fab-badge" {{ 'hidden' if not chat_unread }}>{{ chat_unread }}</span>
+</button>
+<section class="chat-panel" id="chat-panel" hidden role="dialog" aria-label="線上客服"
+         data-csrf="{{ csrf_token() }}" data-api="{{ url_for('api_chat') }}">
+  <header class="chat-head">
+    <img src="{{ url_for('static', filename='img/monogram.png') }}" alt="" class="chat-head-logo">
+    <div class="chat-head-text">
+      <strong>線上客服</strong>
+      <span class="muted small">營業時間內我們會盡快回覆您</span>
+    </div>
+    <button type="button" class="chat-close" id="chat-close" aria-label="關閉">×</button>
+  </header>
+  <div class="chat-body" id="chat-body">
+    <div class="chat-empty" id="chat-empty">您好！有任何關於療程、預約或優惠券的問題，都可以在這裡留言給我們。</div>
+  </div>
+  <form class="chat-form" id="chat-form">
+    <textarea name="body" id="chat-input" rows="1" maxlength="1000" placeholder="輸入訊息…" aria-label="輸入訊息"></textarea>
+    <button class="chat-send" aria-label="傳送" title="傳送">{{ icon('send') }}</button>
+  </form>
+</section>

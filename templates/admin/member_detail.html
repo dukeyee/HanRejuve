@@ -21,6 +21,7 @@
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="reset_password">
         <button class="btn ghost sm">重設密碼</button>
       </form>
+      <a class="btn sm" href="{{ url_for('admin_chat', uid=m.id) }}">💬 傳訊息</a>
       <a class="btn sm" href="{{ url_for('admin_coupon_send', uid=m.id) }}">🎫 發送優惠券</a>
       {% if not m.email_verified %}
       <form method="post" data-confirm="確定要手動驗證這位會員的 Email？（會同時送出新人體驗券）">
