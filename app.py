@@ -9,6 +9,14 @@ import os
 import re
 import secrets
 import sqlite3
+import time as _systime
+
+# 時區：網站一律使用馬來西亞時間（雲端主機預設多為 UTC，會讓預約時段差 8 小時）。
+# 可用環境變數 TZ 改成其他時區；Windows 沒有 tzset，使用電腦本身的時區。
+if hasattr(_systime, "tzset"):            # Linux / Mac 主機
+    os.environ.setdefault("TZ", "Asia/Kuala_Lumpur")
+    _systime.tzset()
+
 from datetime import date, datetime, time, timedelta
 
 from flask import (Flask, abort, flash, g, jsonify, redirect, render_template,
@@ -59,6 +67,9 @@ app.config.update(
     SECRET_KEY=load_secret(),
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
+    # 上線（HTTPS）時設定環境變數 HAN_HTTPS=1：登入狀態只透過加密連線傳送
+    SESSION_COOKIE_SECURE=os.environ.get("HAN_HTTPS") == "1",
+    PREFERRED_URL_SCHEME="https" if os.environ.get("HAN_HTTPS") == "1" else "http",
     PERMANENT_SESSION_LIFETIME=timedelta(days=14),
     MAX_CONTENT_LENGTH=60 * 1024 * 1024,  # 單次上傳合計上限（可一次上傳多張手機照片）
 )
