@@ -444,6 +444,21 @@ PHRASES = {
     "服務分成「主項目」和「子項目」。客人點開主項目後選擇子項目預約。主項目下只有一個同名子項目時，客人可以直接選擇，不用展開。價格不會顯示給客人，只用於營收統計。":
         "Treatments are grouped into categories. Customers open a category, then pick a treatment. A category with a single treatment of the same name can be picked directly. Prices are not shown to customers and are only used for revenue reports.",
     "刪除優惠券": "Delete coupon",
+    # 備份與還原
+    "資料備份與還原": "Backup and Restore",
+    "備份檔包含：會員、預約、優惠券、公告、客服訊息、服務紀錄、上傳的海報與照片。":
+        "The backup includes members, bookings, coupons, announcements, chat messages, service records, and uploaded posters and photos.",
+    "不包含 Gmail 寄信密碼與登入金鑰（這兩項要在主機設定裡另外填寫）。備份檔含有客人個資，請妥善保管。":
+        "It does not include the Gmail password or login key (set these in the hosting settings). The backup contains customer data, so keep it safe.",
+    "⬇ 下載備份": "⬇ Download backup",
+    "建議每個月下載一次，存在自己的電腦或雲端硬碟。": "We recommend downloading one every month and keeping it on your computer or cloud drive.",
+    "確定要還原備份？目前網站上的所有資料都會被備份檔的內容取代，此操作無法復原。還原後請用備份裡的管理員帳號重新登入。":
+        "Restore this backup? All current data on the site will be replaced by the backup. This cannot be undone. Afterwards, log in with the admin account from the backup.",
+    "還原備份（例如把資料搬到新的主機）": "Restore a backup (for example, to move to a new host)",
+    "選擇從本網站「下載備份」得到的 .zip 檔": "Choose a .zip file downloaded with Download backup",
+    "還原備份": "Restore backup",
+    "請選擇從網站下載的備份檔（.zip）": "Please choose a backup file (.zip) downloaded from this site",
+    "備份檔不正確或已損壞，資料沒有變更": "The backup file is invalid or damaged. No data was changed.",
     # 線上客服
     "線上客服": "Live Chat",
     "營業時間內我們會盡快回覆您": "We will reply as soon as possible during opening hours",
@@ -547,6 +562,8 @@ PHRASES = {
 
 # ---------------------------------------------------------------- 含變數的句子
 PATTERNS = [
+    (r"資料已還原（含 (\d+) 個圖片檔），請用備份裡的管理員帳號重新登入",
+     r"Data restored (\1 image files). Please log in with the admin account from the backup."),
     (r"確定要刪除優惠券「(.+?)」？(?:目前有 (\d+) 位會員持有還沒使用的這張券，會一併移除。)?已用在預約上的紀錄會保留。此操作無法復原。",
      lambda m: f"Delete coupon {m.group(1)}? "
                + (f"{m.group(2)} members hold an unused copy, which will also be removed. " if m.group(2) else "")

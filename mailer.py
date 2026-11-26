@@ -11,7 +11,7 @@ from email.message import EmailMessage
 from email.utils import formataddr
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SETTINGS_FILE = os.path.join(BASE_DIR, "email_settings.txt")
+SETTINGS_FILE = os.path.join(os.environ.get("HAN_DATA_DIR", BASE_DIR), "email_settings.txt")
 KEYS = ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "MAIL_FROM_NAME")
 
 

@@ -3,6 +3,9 @@
 Flask + SQLite。執行：python app.py  然後開啟 http://127.0.0.1:5000
 """
 import functools
+import io
+import tempfile
+import zipfile
 import hashlib
 import hmac
 import os
@@ -20,7 +23,7 @@ if hasattr(_systime, "tzset"):            # Linux / Mac 主機
 from datetime import date, datetime, time, timedelta
 
 from flask import (Flask, abort, flash, g, jsonify, redirect, render_template,
-                   request, send_from_directory, session, url_for)
+                   request, send_file, send_from_directory, session, url_for)
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -46,9 +49,13 @@ for _stream in (sys.stdout, sys.stderr):
         pass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.environ.get("HAN_DB", os.path.join(BASE_DIR, "hanrejuve.db"))
-SECRET_FILE = os.path.join(BASE_DIR, "secret_key.txt")
-ADMIN_PW_FILE = os.path.join(BASE_DIR, "admin_initial_password.txt")
+# 資料（資料庫、上傳圖片、照片、金鑰）放在 DATA_DIR。
+# 雲端主機用環境變數 HAN_DATA_DIR 指到永久硬碟；本機沒設定時就是專案資料夾（和原本一樣）。
+DATA_DIR = os.environ.get("HAN_DATA_DIR", BASE_DIR)
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_PATH = os.environ.get("HAN_DB", os.path.join(DATA_DIR, "hanrejuve.db"))
+SECRET_FILE = os.path.join(DATA_DIR, "secret_key.txt")
+ADMIN_PW_FILE = os.path.join(DATA_DIR, "admin_initial_password.txt")
 DEFAULT_ADMIN_EMAIL = "hanrejuve2026@gmail.com"
 
 
@@ -74,9 +81,10 @@ app.config.update(
     MAX_CONTENT_LENGTH=60 * 1024 * 1024,  # 單次上傳合計上限（可一次上傳多張手機照片）
 )
 MAX_IMAGE_BYTES = 15 * 1024 * 1024       # 單張圖片上限
-UPLOAD_DIR = os.path.join(BASE_DIR, "static", "uploads")
+# 後台上傳的海報：本機在 static/uploads；雲端在永久硬碟的 uploads（網址一樣是 /static/uploads/...）
+UPLOAD_DIR = os.path.join(BASE_DIR, "static", "uploads") if DATA_DIR == BASE_DIR else os.path.join(DATA_DIR, "uploads")
 # 客人的服務紀錄照片：放在非公開資料夾，只有該客人和管理員能透過網站看到
-PRIVATE_PHOTO_DIR = os.environ.get("HAN_PRIVATE_DIR", os.path.join(BASE_DIR, "private_uploads", "booking_photos"))
+PRIVATE_PHOTO_DIR = os.environ.get("HAN_PRIVATE_DIR", os.path.join(DATA_DIR, "private_uploads", "booking_photos"))
 MAX_PHOTOS_PER_BOOKING = 20
 ALLOWED_IMG = {"jpg", "jpeg", "png", "webp", "gif"}
 
@@ -339,11 +347,16 @@ def init_db():
             seed_coupons(db)
         db.execute("INSERT INTO settings(key, value) VALUES ('coupons_seeded', '1')")
     if db.execute("SELECT COUNT(*) FROM users WHERE is_admin = 1").fetchone()[0] == 0:
-        pw = secrets.token_urlsafe(9)
+        env_pw = os.environ.get("HAN_ADMIN_PASSWORD", "").strip()
+        pw = env_pw or secrets.token_urlsafe(9)
         db.execute(
             "INSERT INTO users(name, phone, email, password_hash, is_admin, email_verified) VALUES (?,?,?,?,1,1)",
-            ("管理員", "", DEFAULT_ADMIN_EMAIL, generate_password_hash(pw)),
+            ("管理員", "", os.environ.get("HAN_ADMIN_EMAIL", DEFAULT_ADMIN_EMAIL).strip().lower(), generate_password_hash(pw)),
         )
+        if env_pw:
+            print("[HAN REJUVE] 已建立管理員帳號（密碼為環境變數 HAN_ADMIN_PASSWORD）")
+            db.close()
+            return
         with open(ADMIN_PW_FILE, "w", encoding="utf-8") as f:
             f.write(
                 "HAN REJUVE 初始管理員帳號\n"
@@ -1773,6 +1786,109 @@ def admin_api_chat(uid):
                (uid,))
     return jsonify({"ok": True, "member": {"uid": m["id"], "name": m["name"], "phone": phone_filter(m["phone"]),
                                           "email": m["email"]}, "messages": msgs})
+
+
+# ---------------------------------------------------------------- 上傳海報（雲端時存於永久硬碟）
+@app.route("/static/uploads/<path:filename>")
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_DIR, filename, max_age=86400)
+
+
+# ---------------------------------------------------------------- 資料備份與還原
+BACKUP_MAX_BYTES = 500 * 1024 * 1024
+_SAFE_NAME = re.compile(r"^[A-Za-z0-9_.-]+$")
+
+
+def _allow_large_restore_upload():
+    """還原備份檔可能很大（含照片），只對這個網址放寬上傳上限。"""
+    if request.path == "/admin/restore":
+        request.max_content_length = BACKUP_MAX_BYTES
+
+
+app.before_request_funcs.setdefault(None, []).insert(0, _allow_large_restore_upload)
+
+
+@app.route("/admin/backup")
+@admin_required
+def admin_backup():
+    """下載備份：資料庫 + 上傳的海報 + 服務紀錄照片（不含寄信密碼與金鑰）。"""
+    buf = io.BytesIO()
+    with tempfile.TemporaryDirectory() as tmp:
+        snap = os.path.join(tmp, "hanrejuve.db")
+        src, dst = sqlite3.connect(DB_PATH), sqlite3.connect(snap)
+        try:
+            src.backup(dst)   # 一致的快照，網站使用中也安全
+        finally:
+            dst.close(); src.close()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            z.write(snap, "hanrejuve.db")
+            for base, prefix in ((UPLOAD_DIR, "uploads"), (PRIVATE_PHOTO_DIR, "booking_photos")):
+                if os.path.isdir(base):
+                    for name in sorted(os.listdir(base)):
+                        p = os.path.join(base, name)
+                        if os.path.isfile(p) and _SAFE_NAME.match(name) and not name.startswith("."):
+                            z.write(p, f"{prefix}/{name}")
+    buf.seek(0)
+    return send_file(buf, mimetype="application/zip", as_attachment=True,
+                     download_name=f"hanrejuve-backup-{datetime.now():%Y%m%d-%H%M}.zip")
+
+
+@app.route("/admin/restore", methods=["POST"])
+@admin_required
+def admin_restore():
+    """還原備份：用備份檔的資料取代目前網站的全部資料。"""
+    file = request.files.get("backup")
+    if not file or not file.filename.lower().endswith(".zip"):
+        flash("請選擇從網站下載的備份檔（.zip）", "error")
+        return redirect(url_for("admin_settings") + "#backup")
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            zpath = os.path.join(tmp, "backup.zip")
+            file.save(zpath)
+            with zipfile.ZipFile(zpath) as z:
+                names = [n for n in z.namelist() if not n.endswith("/")]
+                if "hanrejuve.db" not in names:
+                    raise ValueError("no db")
+                for n in names:   # 只接受預期的檔案，防止惡意壓縮檔
+                    if n == "hanrejuve.db":
+                        continue
+                    parts = n.split("/")
+                    if len(parts) != 2 or parts[0] not in ("uploads", "booking_photos")                             or not _SAFE_NAME.match(parts[1]) or parts[1].startswith("."):
+                        raise ValueError(f"bad entry {n}")
+                z.extract("hanrejuve.db", tmp)
+                new_db = sqlite3.connect(os.path.join(tmp, "hanrejuve.db"))
+                try:
+                    if new_db.execute("PRAGMA integrity_check").fetchone()[0] != "ok" or                             not new_db.execute("SELECT COUNT(*) FROM users WHERE is_admin = 1").fetchone()[0]:
+                        raise ValueError("invalid db")
+                    live = sqlite3.connect(DB_PATH, timeout=30)
+                    try:
+                        new_db.backup(live)   # 以備份內容取代目前資料庫
+                    finally:
+                        live.close()
+                finally:
+                    new_db.close()
+                restored_files = 0
+                for n in names:
+                    if n == "hanrejuve.db":
+                        continue
+                    folder, name = n.split("/")
+                    target_dir = UPLOAD_DIR if folder == "uploads" else PRIVATE_PHOTO_DIR
+                    os.makedirs(target_dir, exist_ok=True)
+                    with z.open(n) as src, open(os.path.join(target_dir, name), "wb") as out:
+                        out.write(src.read())
+                    restored_files += 1
+    except (zipfile.BadZipFile, ValueError, sqlite3.DatabaseError) as e:
+        app.logger.warning("還原失敗：%s", e)
+        flash("備份檔不正確或已損壞，資料沒有變更", "error")
+        return redirect(url_for("admin_settings") + "#backup")
+    old = g.pop("db", None)
+    if old is not None:
+        old.close()
+    g.pop("user", None)
+    init_db()   # 舊版本的備份會自動升級資料表
+    reset_session()
+    flash(f"資料已還原（含 {restored_files} 個圖片檔），請用備份裡的管理員帳號重新登入", "success")
+    return redirect(url_for("login"))
 
 
 @app.route("/admin/settings", methods=["GET", "POST"])

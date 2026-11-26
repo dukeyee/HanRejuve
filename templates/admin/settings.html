@@ -61,4 +61,22 @@
   <p class="muted">尚未設定店休日</p>
   {% endfor %}
 </div>
+
+<div class="card" id="backup">
+  <h2>資料備份與還原</h2>
+  <p class="muted small">備份檔包含：會員、預約、優惠券、公告、客服訊息、服務紀錄、上傳的海報與照片。<br>
+     不包含 Gmail 寄信密碼與登入金鑰（這兩項要在主機設定裡另外填寫）。備份檔含有客人個資，請妥善保管。</p>
+  <div class="actions" style="margin-bottom:18px">
+    <a class="btn" href="{{ url_for('admin_backup') }}">⬇ 下載備份</a>
+    <span class="muted small">建議每個月下載一次，存在自己的電腦或雲端硬碟。</span>
+  </div>
+  <form method="post" action="{{ url_for('admin_restore') }}" enctype="multipart/form-data"
+        data-confirm="確定要還原備份？目前網站上的所有資料都會被備份檔的內容取代，此操作無法復原。還原後請用備份裡的管理員帳號重新登入。">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="field"><label for="backup-file">還原備份（例如把資料搬到新的主機）</label>
+      <input id="backup-file" type="file" name="backup" accept=".zip" required>
+      <div class="hint">選擇從本網站「下載備份」得到的 .zip 檔</div></div>
+    <button class="btn danger">還原備份</button>
+  </form>
+</div>
 {% endblock %}

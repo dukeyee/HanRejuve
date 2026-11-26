@@ -1,0 +1,33 @@
+# Render 部署設定（Blueprint）。在 Render 選 New → Blueprint，連接這個 GitHub 專案即可自動套用。
+# 標示 sync: false 的項目（密碼類）會在建立時讓你在 Render 畫面上填寫，不會存在 GitHub。
+services:
+  - type: web
+    name: hanrejuve
+    runtime: python
+    region: singapore              # 離馬來西亞最近
+    plan: starter                  # 付費方案：才能掛永久硬碟、寄 Gmail 驗證信
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 8 --timeout 120 --bind 0.0.0.0:$PORT
+    healthCheckPath: /
+    autoDeploy: true               # 推到 GitHub 後自動更新網站
+    disk:
+      name: hanrejuve-data
+      mountPath: /var/data         # 資料庫、上傳圖片、照片都存在這裡（重新部署也不會消失）
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: HAN_DATA_DIR
+        value: /var/data
+      - key: HAN_HTTPS
+        value: "1"
+      - key: TZ
+        value: Asia/Kuala_Lumpur
+      - key: HAN_SECRET            # 登入加密金鑰，自動產生
+        generateValue: true
+      - key: HAN_ADMIN_PASSWORD    # 第一次啟動時的管理員密碼（自己設定）
+        sync: false
+      - key: SMTP_USER
+        value: hanrejuve2026@gmail.com
+      - key: SMTP_PASSWORD         # Gmail 應用程式密碼
+        sync: false
