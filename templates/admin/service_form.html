@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ '編輯' if svc else '新增' }}服務 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('admin_services') }}">← 服務項目</a></p>
+<h1>{{ '編輯服務' if svc else '新增服務' }}</h1>
+<form method="post" class="card">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <div class="field"><label for="cat">所屬主項目</label>
+    <select id="cat" name="category_id">
+      <option value="">（無主項目）</option>
+      {% for c in categories %}<option value="{{ c.id }}" {{ 'selected' if cur_cat == c.id }}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field"><label for="name">子項目名稱</label><input id="name" type="text" name="name" value="{{ svc.name if svc }}" required></div>
+  <div class="field"><label for="desc">介紹</label><textarea id="desc" name="description">{{ svc.description if svc }}</textarea></div>
+  <div class="row">
+    <div class="field"><label for="dur">預計時長（分鐘）</label><input id="dur" type="number" name="duration" min="5" step="5" value="{{ svc.duration if svc else 60 }}" required><div class="hint">不會顯示給客人，只用來計算這段時間是否還有空位</div></div>
+    <div class="field"><label for="price">參考價格</label><input id="price" type="number" name="price" min="0" value="{{ svc.price if svc else 0 }}" required><div class="hint">不會顯示給客人，只用於後台營收統計（實際價格依現場而定）</div></div>
+  </div>
+  <div class="row">
+    <div class="field"><label for="sort">排序（數字小的排前面）</label><input id="sort" type="number" name="sort_order" value="{{ svc.sort_order if svc else 0 }}"></div>
+    <div class="field"><label>&nbsp;</label><label class="checkbox"><input type="checkbox" name="active" value="1" {{ 'checked' if not svc or svc.active }}> 開放線上預約</label></div>
+  </div>
+  <div class="actions">
+    <button class="btn">儲存</button>
+    {% if svc %}
+    <button class="btn danger" name="action" value="delete" formnovalidate data-confirm="確定要刪除此服務？（若已有預約紀錄，會改為停用）">刪除</button>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}

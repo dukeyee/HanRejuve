@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_coupon.html" import coupon_card with context %}
+{% block title %}{{ m.title }} · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('inbox') }}">← 收件箱</a></p>
+<article class="card">
+  <span class="badge {{ 'pending' if m.kind == 'coupon' else 'completed' }}">{{ '優惠券' if m.kind == 'coupon' else '公告' }}</span>
+  <h1 style="margin-top:10px">{{ m.title }}</h1>
+  <div class="muted small" style="margin-bottom:16px">{{ m.created_at[:16] }}</div>
+  {% if m.body %}<div class="msg-body">{{ m.body }}</div>{% endif %}
+  {% if m.image %}<a href="{{ url_for('static', filename=m.image) }}" data-viewer="{{ [[url_for('static', filename=m.image), '']]|tojson|forceescape }}"><img class="msg-image" src="{{ url_for('static', filename=m.image) }}" alt=""></a>{% endif %}
+</article>
+{% if coupons %}
+<h2 style="margin-top:26px">隨信附上的優惠券</h2>
+<div class="coupon-list">
+  {% for c in coupons %}{{ coupon_card(c) }}{% endfor %}
+</div>
+<p class="muted small">優惠券已存入「<a href="{{ url_for('my_coupons') }}">我的優惠券</a>」，預約時選擇即可使用。</p>
+{% endif %}
+{% endblock %}

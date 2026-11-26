@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}公告信件 · {{ S.shop_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>公告信件</h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('admin_announcement_new') }}">＋ 發佈活動公告</a>
+    <a class="btn ghost" href="{{ url_for('admin_coupon_send') }}">🎫 發送優惠券</a>
+  </div>
+</div>
+
+<div class="card flush-mobile">
+  <h2>活動公告 <span class="muted small">（發給所有會員，共 {{ members }} 位）</span></h2>
+  {% if announcements %}
+  <div class="table-wrap">
+  <table class="responsive">
+    <thead><tr><th>發佈時間</th><th>標題</th><th>圖片</th><th>已讀人數</th><th></th></tr></thead>
+    <tbody>
+    {% for m in announcements %}
+    <tr>
+      <td data-label="發佈時間">{{ m.created_at[:16] }}</td>
+      <td data-label="標題"><strong>{{ m.title }}</strong><div class="muted small">{{ m.body[:50] }}{% if m.body|length > 50 %}…{% endif %}</div></td>
+      <td data-label="圖片">{% if m.image %}<img class="thumb" src="{{ url_for('static', filename=m.image) }}" alt="">{% endif %}</td>
+      <td data-label="已讀人數">{{ m.reads }}</td>
+      <td data-label="">
+        <form method="post" action="{{ url_for('admin_message_delete', mid=m.id) }}" data-confirm="確定刪除這則公告？會員將不再看到。">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button class="btn danger sm">刪除</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="muted">尚未發佈公告</p>{% endif %}
+</div>
+
+<div class="card flush-mobile">
+  <h2>個人信件 <span class="muted small">（優惠券、新人禮，最近 100 封）</span></h2>
+  {% if personal %}
+  <div class="table-wrap">
+  <table class="responsive">
+    <thead><tr><th>時間</th><th>收件會員</th><th>標題</th><th>附券</th><th>狀態</th></tr></thead>
+    <tbody>
+    {% for m in personal %}
+    <tr>
+      <td data-label="時間">{{ m.created_at[:16] }}</td>
+      <td data-label="收件會員"><a href="{{ url_for('admin_member_detail', uid=m.user_id) }}">{{ m.user_name }}</a></td>
+      <td data-label="標題">{{ m.title }}</td>
+      <td data-label="附券">{{ m.coupon_count }} 張</td>
+      <td data-label="狀態">{% if m.is_read %}<span class="badge confirmed">已讀</span>{% else %}<span class="badge pending">未讀</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="muted">尚無個人信件</p>{% endif %}
+</div>
+{% endblock %}

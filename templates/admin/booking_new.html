@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}新增預約 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% block content %}
+<h1>新增預約</h1>
+<p class="muted">適用於電話或現場預約。若電話號碼與已註冊會員相同，會自動連結到該會員。後台可選擇任何有空位的時段（不受提前預約限制）。</p>
+
+<form method="post" id="booking-form" class="card" data-admin="1"
+      data-min="{{ today }}" data-max=""
+      data-closed-weekdays="{{ closed_weekdays|tojson|forceescape }}"
+      data-closed-dates="{{ closed_dates|tojson|forceescape }}">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <input type="hidden" name="date" value="{{ form.date }}">
+  <input type="hidden" name="time" value="">
+  <div class="row">
+    <div class="field"><label for="gn">顧客姓名</label><input id="gn" type="text" name="guest_name" value="{{ form.guest_name }}" required></div>
+    <div class="field"><label for="gp">電話</label><input id="gp" type="tel" name="guest_phone" value="{{ form.guest_phone }}" required></div>
+  </div>
+  <div class="field"><label for="svc">服務項目</label>
+    <select id="svc" name="service_id" required>
+      {% for c in catalog if c.services %}
+      <optgroup label="{{ c.name }}">
+        {% for s in c.services %}
+        <option value="{{ s.id }}" data-name="{{ s.full_name }}" data-duration="{{ s.duration }}" data-price="{{ s.price }}"
+                {{ 'selected' if (form.get('service_id') or 0)|int == s.id }}>{{ s.name }}（{{ s.duration }} 分 · {{ s.price|money }}）{% if not s.active or not c.active %} [停用]{% endif %}</option>
+        {% endfor %}
+      </optgroup>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field"><label>日期</label>
+    <div class="date-strip" id="date-strip"></div>
+    <div class="date-other"><span class="muted">其他日期：</span><input type="date" id="date-other"></div>
+  </div>
+  <div class="field"><label>時間</label><div id="slots"></div></div>
+  <div class="field"><label for="note">備註</label><textarea id="note" name="note">{{ form.note }}</textarea></div>
+  <div class="actions">
+    <button class="btn lg" id="submit-btn" disabled>建立預約（直接確認）</button>
+    <span class="muted small" id="sum-text"></span>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='booking.js') }}"></script>{% endblock %}

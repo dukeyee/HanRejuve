@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="{{ 'en' if lang == 'en' else 'zh-Hant' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>{% block title %}{{ S.shop_name }} 線上預約{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/favicon.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:wght@500;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="preload" as="image" href="{{ url_for('static', filename='img/monogram.png') }}">
+  <script>
+    /* 開場動畫：每次造訪（同一個瀏覽器分頁）只播放一次 */
+    try {
+      if (!sessionStorage.getItem('hr_intro') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.documentElement.classList.add('hr-intro');
+        sessionStorage.setItem('hr_intro', '1');
+      }
+    } catch (e) {}
+  </script>
+</head>
+<body>
+<div class="intro" aria-hidden="true">
+  <div class="intro-logo">
+    <img class="intro-dark" src="{{ url_for('static', filename='img/monogram.png') }}" alt="">
+    <img class="intro-gold" src="{{ url_for('static', filename='img/monogram.png') }}" alt="">
+    <span class="intro-shine"></span>
+  </div>
+  <img class="intro-word" src="{{ url_for('static', filename='img/wordmark.png') }}" alt="">
+</div>
+<script>
+  (function () {
+    var h = document.documentElement;
+    if (!h.classList.contains('hr-intro')) return;
+    var done = function () { h.classList.remove('hr-intro'); };
+    var el = document.querySelector('.intro');
+    el.addEventListener('animationend', function (e) { if (e.animationName === 'introOut') done(); });
+    el.addEventListener('click', done);          // 點一下可略過
+    setTimeout(done, 4000);                       // 保險：最多 4 秒
+  })();
+</script>
+{% from "_icons.html" import icon %}
+{% set is_admin_area = request.path.startswith('/admin') %}
+{% set ep = request.endpoint or '' %}
+<header class="site-header {{ 'admin' if is_admin_area }}">
+  <div class="header-inner">
+    <a class="brand" href="{{ url_for('admin_dashboard') if is_admin_area else url_for('index') }}" aria-label="{{ S.shop_name }}">
+      <img class="mono" src="{{ url_for('static', filename='img/monogram.png') }}" alt="">
+      <img class="word" src="{{ url_for('static', filename='img/wordmark.png') }}" alt="{{ S.shop_name }}">
+      {% if is_admin_area %}<small>管理後台</small>{% endif %}
+    </a>
+    <div class="header-icons">
+      {% if current_user and not is_admin_area %}
+        <a class="icon-btn {{ 'active' if ep.startswith('inbox') }}" href="{{ url_for('inbox') }}" title="收件箱" aria-label="收件箱">
+          {{ icon('mail') }}{% if unread %}<span class="icon-badge">{{ unread if unread < 100 else '99+' }}</span>{% endif %}</a>
+        <a class="icon-btn {{ 'active' if ep == 'my_coupons' }}" href="{{ url_for('my_coupons') }}" title="我的優惠券" aria-label="我的優惠券">{{ icon('ticket') }}</a>
+      {% endif %}
+      {% if current_user %}
+        <a class="icon-btn {{ 'active' if ep == 'account' }}" href="{{ url_for('account') }}" title="我的帳號" aria-label="我的帳號">{{ icon('user') }}</a>
+        <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <button class="icon-btn" title="登出" aria-label="登出">{{ icon('exit') }}</button></form>
+      {% endif %}
+      <a class="icon-btn lang" href="{{ url_for('set_lang', code='zh' if lang == 'en' else 'en', next=request.full_path) }}"
+         title="{{ '切換為中文' if lang == 'en' else 'Switch to English' }}" aria-label="{{ '切換為中文' if lang == 'en' else 'Switch to English' }}">
+        {{ icon('globe') }}<span class="lang-tag">{{ '中' if lang == 'en' else 'EN' }}</span></a>
+    </div>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-btn" aria-label="選單"><span></span><span></span><span></span></label>
+    {% if current_user and current_user.is_admin %}
+      {% set switch_label = '切換到前台網站' if is_admin_area else '切換到管理後台' %}
+      <a class="icon-btn switch-btn" href="{{ url_for('index') if is_admin_area else url_for('admin_dashboard') }}"
+         title="{{ switch_label }}" aria-label="{{ switch_label }}">{{ icon('switch') }}</a>
+    {% endif %}
+    <nav class="nav">
+      {% if is_admin_area %}
+        <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if ep == 'admin_dashboard' }}">總覽</a>
+        <a href="{{ url_for('admin_bookings') }}" class="{{ 'active' if ep.startswith('admin_booking') }}">預約管理</a>
+        <a href="{{ url_for('admin_services') }}" class="{{ 'active' if ep.startswith('admin_service') }}">服務項目</a>
+        <a href="{{ url_for('admin_members') }}" class="{{ 'active' if ep.startswith('admin_member') }}">會員</a>
+        <a href="{{ url_for('admin_coupons') }}" class="{{ 'active' if ep.startswith('admin_coupon') }}">優惠券</a>
+        <a href="{{ url_for('admin_messages') }}" class="{{ 'active' if ep in ('admin_messages', 'admin_announcement_new') }}">公告信件</a>
+        <a href="{{ url_for('admin_settings') }}" class="{{ 'active' if ep == 'admin_settings' }}">營業設定</a>
+      {% else %}
+        <a href="{{ url_for('index') }}#services">服務項目</a>
+        <a href="{{ url_for('book') }}" class="{{ 'active' if ep == 'book' }}">立即預約</a>
+        {% if current_user %}
+          <a href="{{ url_for('my_bookings') }}" class="{{ 'active' if ep == 'my_bookings' }}">我的預約</a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="{{ 'active' if ep == 'login' }}">會員登入</a>
+          <a href="{{ url_for('register') }}" class="{{ 'active' if ep == 'register' }}">註冊</a>
+        {% endif %}
+      {% endif %}
+    </nav>
+  </div>
+</header>
+<main class="{% block main_class %}{% endblock %}">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}<div class="flashes">{% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}</div>{% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+{% if not is_admin_area %}
+<footer class="site-footer">
+  <img src="{{ url_for('static', filename='img/monogram.png') }}" alt="{{ S.shop_name }}"><br>
+  <div class="tag">AESTHETIC · ANTI-AGING · REJUVENATION</div>
+  {% if S.shop_address %}{{ S.shop_address }}<br>{% endif %}
+  {% if S.shop_phone %}預約專線 <a href="tel:{{ S.shop_phone }}">{{ S.shop_phone }}</a><br>{% endif %}
+  營業時間 {{ S.open_time }} – {{ S.close_time }}
+</footer>
+{% endif %}
+<script>window.I18N = {{ i18n_js|tojson }}; window.T = s => window.I18N[s] || s;</script>
+<script src="{{ url_for('static', filename='dialog.js') }}"></script>
+<script src="{{ url_for('static', filename='forms.js') }}"></script>
+<script src="{{ url_for('static', filename='viewer.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

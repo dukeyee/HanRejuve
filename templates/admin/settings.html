@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}營業設定 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% block content %}
+<h1>營業設定</h1>
+<form method="post" class="card">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <h2>店家資訊</h2>
+  <div class="row">
+    <div class="field"><label>店名</label><input type="text" name="shop_name" value="{{ S.shop_name }}" required></div>
+    <div class="field"><label>標語</label><input type="text" name="shop_tagline" value="{{ S.shop_tagline }}"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>預約電話</label><input type="tel" name="shop_phone" value="{{ S.shop_phone }}"></div>
+    <div class="field"><label>貨幣符號</label><input type="text" name="currency" value="{{ S.currency }}" maxlength="5"></div>
+  </div>
+  <div class="field"><label>地址</label><input type="text" name="shop_address" value="{{ S.shop_address }}"></div>
+
+  <h2 style="margin-top:10px">營業時間與預約規則</h2>
+  <div class="row">
+    <div class="field"><label>開店時間</label><input type="time" name="open_time" value="{{ S.open_time }}" required></div>
+    <div class="field"><label>打烊時間</label><input type="time" name="close_time" value="{{ S.close_time }}" required><div class="hint">療程須在打烊前結束</div></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>時段間隔（分鐘）</label><input type="number" name="slot_interval" min="5" step="5" value="{{ S.slot_interval }}" required></div>
+    <div class="field"><label>同時段可服務人數</label><input type="number" name="capacity" min="1" value="{{ S.capacity }}" required><div class="hint">通常等於美容師或床位數</div></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>可預約未來天數</label><input type="number" name="booking_days_ahead" min="0" value="{{ S.booking_days_ahead }}" required><div class="hint">0 = 不限制，任何日期都可以預約</div></div>
+    <div class="field"><label>最少提前預約（小時）</label><input type="number" name="min_advance_hours" min="0" step="0.5" value="{{ S.min_advance_hours }}" required></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>會員可取消期限（預約前幾小時）</label><input type="number" name="cancel_hours" min="0" step="0.5" value="{{ S.cancel_hours }}" required></div>
+    <div class="field"><label>&nbsp;</label><label class="checkbox"><input type="checkbox" name="auto_confirm" value="1" {{ 'checked' if S.auto_confirm == '1' }}> 新預約自動確認</label></div>
+  </div>
+  <div class="field"><label>預約須知（客人按「確認預約」時跳出，需勾選確認）</label>
+    <textarea name="booking_notice" placeholder="留白則不跳出">{{ S.booking_notice }}</textarea>
+  </div>
+  <div class="field"><label>每週固定公休</label>
+    <div class="weekday-picks">
+      {% for i in range(7) %}<label><input type="checkbox" name="closed_weekdays" value="{{ i }}" {{ 'checked' if i in cw }}> 週{{ WEEKDAY_LABELS[i] }}</label>{% endfor %}
+    </div>
+  </div>
+  <button class="btn lg">儲存設定</button>
+</form>
+
+<div class="card">
+  <h2>特定店休日</h2>
+  <form method="post" class="filters">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="add_closed">
+    <div class="field"><label>日期</label><input type="date" name="closed_date" required></div>
+    <div class="field"><label>原因（顧客會看到）</label><input type="text" name="reason" placeholder="例如：春節休息"></div>
+    <button class="btn">新增</button>
+  </form>
+  {% for c in closed %}
+  <div class="booking-item" style="align-items:center">
+    <div class="booking-body"><strong>{{ c.date }}（週{{ c.date|weekday }}）</strong> <span class="muted">{{ c.reason }}</span></div>
+    <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="remove_closed"><input type="hidden" name="closed_date" value="{{ c.date }}"><button class="btn danger sm">移除</button></form>
+  </div>
+  {% else %}
+  <p class="muted">尚未設定店休日</p>
+  {% endfor %}
+</div>
+{% endblock %}

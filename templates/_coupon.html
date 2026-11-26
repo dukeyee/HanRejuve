@@ -1,0 +1,32 @@
+{% macro coupon_card(c, show_use=true) %}
+{% set img = (c.image_en if lang == 'en' and c.image_en else c.image) %}
+{# 檢視器圖片：目前語言的海報在前，另一種語言在後 #}
+{% set gallery = [] %}
+{% if lang == 'en' and c.image_en %}{% set _ = gallery.append([url_for('static', filename=c.image_en), 'English']) %}{% endif %}
+{% if c.image %}{% set _ = gallery.append([url_for('static', filename=c.image), '中文']) %}{% endif %}
+{% if lang != 'en' and c.image_en %}{% set _ = gallery.append([url_for('static', filename=c.image_en), 'English']) %}{% endif %}
+<div class="coupon {{ c.state }}">
+  {% if img %}
+  <a class="coupon-img" href="{{ url_for('static', filename=img) }}" data-viewer="{{ gallery|tojson|forceescape }}" aria-label="{{ c.name }}">
+    <img src="{{ url_for('static', filename=img) }}" alt="{{ c.name }}" loading="lazy">
+    {% if gallery|length > 1 %}<span class="coupon-img-tag">中 / EN</span>{% endif %}
+  </a>
+  {% endif %}
+  <div class="coupon-body">
+    <div class="coupon-price"><small>體驗價</small> {{ c.price|money }}</div>
+    <h3>{{ c.name }}</h3>
+    {% if c.description %}<p class="muted small">{{ c.description }}</p>{% endif %}
+    {% if c.services %}<div class="small coupon-items"><span class="muted">適用項目：</span>{{ c.services|map(attribute='name')|join('、') }}</div>{% endif %}
+    <div class="coupon-foot">
+      <span class="muted small">
+        {% if c.state == 'used' %}已使用
+        {% elif c.state == 'expired' %}已於 {{ c.expires_at }} 過期
+        {% elif c.expires_at %}有效期限至 {{ c.expires_at }}
+        {% else %}永久有效{% endif %}
+      </span>
+      {% if show_use and c.state == 'usable' %}<a class="btn sm" href="{{ url_for('book', coupon=c.id) }}">立即使用</a>{% endif %}
+    </div>
+  </div>
+  {% if c.state != 'usable' %}<div class="coupon-stamp">{{ '已使用' if c.state == 'used' else '已過期' }}</div>{% endif %}
+</div>
+{% endmacro %}

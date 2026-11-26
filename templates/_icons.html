@@ -1,0 +1,19 @@
+{# 線條圖示（顏色跟隨文字顏色） #}
+{% macro icon(name) -%}
+<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == 'globe' %}
+  <circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/>
+{%- elif name == 'mail' %}
+  <rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/>
+{%- elif name == 'ticket' %}
+  <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5z"/><path d="M14.5 5.5v13" stroke-dasharray="1.6 2.2"/>
+{%- elif name == 'user' %}
+  <circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c.6-3.9 3.7-6.5 7.5-6.5s6.9 2.6 7.5 6.5"/>
+{%- elif name == 'switch' %}
+  <path d="M9 8h7.5a2.5 2.5 0 0 1 2.5 2.5v.5" stroke-width="2.4"/><path d="M5 13v.5A2.5 2.5 0 0 0 7.5 16H15" stroke-width="2.4"/>
+  <path d="M2.8 8 9.5 3.6v8.8z" fill="currentColor" stroke-width="1"/><path d="M21.2 16 14.5 11.6v8.8z" fill="currentColor" stroke-width="1"/>
+{%- elif name == 'exit' %}
+  <path d="M10 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H10"/><path d="M15.5 16.5 20 12l-4.5-4.5"/><path d="M20 12H9.5"/>
+{%- endif %}
+</svg>
+{%- endmacro %}

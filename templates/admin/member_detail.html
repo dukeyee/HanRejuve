@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import booking_table, status_btn with context %}
+{% block title %}{{ m.name }} · 會員 · {{ S.shop_name }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('admin_members') }}">← 會員列表</a></p>
+<div class="page-head"><h1>{{ m.name }}{% if m.is_admin %} <span class="badge admin">管理員</span>{% endif %}</h1></div>
+<div class="grid grid-2">
+  <div class="card">
+    <dl class="info">
+      <dt>電話</dt><dd>{% if m.phone %}<a href="tel:{{ m.phone }}">{{ m.phone|phone }}</a>{% else %}—{% endif %}</dd>
+      <dt>Email</dt><dd>{{ m.email }}</dd>
+      <dt>加入日期</dt><dd>{{ m.created_at[:10] }}</dd>
+      <dt>預約次數</dt><dd>{{ rows|length }}</dd>
+      <dt>累計消費</dt><dd>{{ spent|money }}（已完成）</dd>
+    </dl>
+  </div>
+  <div class="card">
+    <h3>帳號操作</h3>
+    <div class="actions">
+      <form method="post" data-confirm="確定要重設此會員的密碼？">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="reset_password">
+        <button class="btn ghost sm">重設密碼</button>
+      </form>
+      <a class="btn sm" href="{{ url_for('admin_coupon_send', uid=m.id) }}">🎫 發送優惠券</a>
+      {% if m.id != current_user.id %}
+      <form method="post" data-confirm="確定要變更管理員權限？">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="toggle_admin">
+        <button class="btn {{ 'danger' if m.is_admin else 'ghost' }} sm">{{ '移除管理員權限' if m.is_admin else '設為管理員' }}</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<div class="card flush-mobile">
+  <h2>優惠券 <span class="muted small">（可用 {{ coupons|selectattr('state', 'equalto', 'usable')|list|length }} / 共 {{ coupons|length }} 張）</span></h2>
+  {% if coupons %}
+  <div class="table-wrap">
+  <table class="responsive">
+    <thead><tr><th>優惠券</th><th>體驗價</th><th>領取日</th><th>到期日</th><th>狀態</th></tr></thead>
+    <tbody>
+    {% for c in coupons %}
+    <tr>
+      <td data-label="優惠券">{{ c.name }}</td>
+      <td data-label="體驗價">{{ c.price|money }}</td>
+      <td data-label="領取日">{{ c.issued_at[:10] }}</td>
+      <td data-label="到期日">{{ c.expires_at or '永久' }}</td>
+      <td data-label="狀態">
+        {% if c.state == 'usable' %}<span class="badge confirmed">可使用</span>
+        {% elif c.state == 'used' %}<span class="badge completed">已使用</span>{% if c.used_booking_id %} <a class="small" href="{{ url_for('admin_booking_detail', bid=c.used_booking_id) }}">#{{ c.used_booking_id }}</a>{% endif %}
+        {% else %}<span class="badge cancelled">已過期</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="muted">尚未領取優惠券</p>{% endif %}
+</div>
+
+<div class="card flush-mobile">
+  <h2>預約紀錄</h2>
+  {{ booking_table(rows) }}
+</div>
+{% endblock %}

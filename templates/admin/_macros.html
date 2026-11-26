@@ -1,0 +1,44 @@
+{% macro booking_table(rows, show_date=true, quick=true) %}
+{% if rows %}
+<div class="table-wrap">
+<table class="responsive">
+  <thead><tr>
+    <th>#</th>{% if show_date %}<th>日期</th>{% endif %}<th>時間</th><th>顧客</th><th>電話</th><th>服務</th><th>狀態</th>{% if quick %}<th>操作</th>{% endif %}
+  </tr></thead>
+  <tbody>
+  {% for b in rows %}
+  <tr class="clickable" onclick="if(!event.target.closest('form,a'))location.href='{{ url_for('admin_booking_detail', bid=b.id) }}'">
+    <td data-label="編號"><a href="{{ url_for('admin_booking_detail', bid=b.id) }}">#{{ b.id }}</a></td>
+    {% if show_date %}<td data-label="日期">{{ b.date }}（{{ b.date|weekday }}）</td>{% endif %}
+    <td data-label="時間">{{ b.start_time }}–{{ b.end_time }}</td>
+    <td data-label="顧客">{{ b.customer_name }}{% if not b.user_id %} <span class="muted small">(非會員)</span>{% endif %}</td>
+    <td data-label="電話">{% if b.customer_phone %}<a href="tel:{{ b.customer_phone }}">{{ b.customer_phone|phone }}</a>{% endif %}</td>
+    <td data-label="服務">{{ b.service_name }}</td>
+    <td data-label="狀態"><span class="badge {{ b.status }}">{{ STATUS_LABELS[b.status] }}</span></td>
+    {% if quick %}
+    <td data-label="操作">
+      {% if b.status == 'pending' %}
+        {{ status_btn(b.id, 'confirmed', '確認') }}
+      {% elif b.status == 'confirmed' %}
+        {{ status_btn(b.id, 'completed', '完成') }}
+      {% endif %}
+    </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty">沒有符合條件的預約</div>
+{% endif %}
+{% endmacro %}
+
+{% macro status_btn(bid, status, label, cls='sm') %}
+<form class="inline-form" method="post" action="{{ url_for('admin_booking_detail', bid=bid) }}">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <input type="hidden" name="status" value="{{ status }}">
+  <input type="hidden" name="back" value="{{ request.full_path }}">
+  <button class="btn {{ cls }}">{{ label }}</button>
+</form>
+{% endmacro %}

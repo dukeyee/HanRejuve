@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}註冊會員 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+<div class="card auth-card">
+  <img class="auth-logo" src="{{ url_for('static', filename='img/monogram.png') }}" alt="{{ S.shop_name }}">
+  <h1>註冊會員</h1>
+  <form method="post">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="field"><label for="name">姓名</label><input id="name" type="text" name="name" value="{{ form.name }}" required autocomplete="name"></div>
+    <div class="field"><label for="phone">手機號碼（馬來西亞）</label>
+      <div class="phone-input"><span class="cc">+60</span><input id="phone" type="tel" name="phone" data-my-phone inputmode="tel" placeholder="12-345 6789" value="{{ form.phone }}" required autocomplete="tel-national"></div>
+    </div>
+    <div class="field"><label for="email">Email</label><input id="email" type="email" name="email" placeholder="name@gmail.com" value="{{ form.email }}" required autocomplete="email"></div>
+    <div class="row">
+      <div class="field"><label for="pw">密碼</label><input id="pw" type="password" name="password" required minlength="6" autocomplete="new-password"></div>
+      <div class="field"><label for="pw2">確認密碼</label><input id="pw2" type="password" name="password2" required minlength="6" autocomplete="new-password"></div>
+    </div>
+    <button class="btn block lg">註冊並開始預約</button>
+  </form>
+  <p class="center muted small" style="margin-top:18px">已經是會員？<a href="{{ url_for('login', next=request.args.get('next')) }}">登入</a></p>
+</div>
+{% endblock %}

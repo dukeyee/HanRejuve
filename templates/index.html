@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <img class="hero-logo" src="{{ url_for('static', filename='img/logo-full.jpg') }}" alt="{{ S.shop_name }}">
+  <p class="slogan gold-text">{{ S.shop_tagline }}</p>
+  <p>科技煥膚 · 定制之美 · 由內而外</p>
+  <a class="btn lg" href="{{ url_for('book') }}">立即線上預約</a>
+</section>
+
+<section id="services">
+  <div class="section-title">
+    <span class="en">OUR TREATMENTS</span>
+    <h2 class="gold-text">服務項目</h2>
+  </div>
+  <div class="cat-list home">
+    {% for c in catalog %}
+    {% if c.single %}
+      {% set s = c.services[0] %}
+      <div class="cat single">
+        <div class="cat-row">
+          <span><strong>{{ c.name }}</strong>{% if s.description or c.description %}<span class="muted small cat-desc">{{ s.description or c.description }}</span>{% endif %}</span>
+          <span class="cat-right"><a class="btn sm" href="{{ url_for('book', service=s.id) }}">預約</a></span>
+        </div>
+      </div>
+    {% else %}
+      <details class="cat" name="home-cat">
+        <summary>
+          <span><strong>{{ c.name }}</strong>{% if c.description %}<span class="muted small cat-desc">{{ c.description }}</span>{% endif %}</span>
+          <span class="cat-count">{{ c.services|length }} 項<span class="chev"></span></span>
+        </summary>
+        <ul class="sub-list">
+          {% for s in c.services %}
+          <li>
+            <span><strong>{{ s.name }}</strong>{% if s.description %}<span class="muted small cat-desc">{{ s.description }}</span>{% endif %}</span>
+            <span class="cat-right"><a class="btn sm ghost" href="{{ url_for('book', service=s.id) }}">預約</a></span>
+          </li>
+          {% endfor %}
+        </ul>
+      </details>
+    {% endif %}
+    {% else %}
+    <p class="muted">目前沒有開放預約的服務項目。</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="features">
+  <div class="feature">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
+    <strong>專業團隊</strong><span>經驗豐富 · 一對一定制</span>
+  </div>
+  <div class="feature">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M9 6V4h6v2M12 10v6M9 13h6"/></svg></div>
+    <strong>安全有效</strong><span>正規儀器 · 安心變美</span>
+  </div>
+  <div class="feature">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 19c0-8 5-14 14-14 0 9-6 14-14 14z"/><path d="M5 19l8-8"/></svg></div>
+    <strong>品質服務</strong><span>貼心服務 · 全程陪護</span>
+  </div>
+  <div class="feature">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4h12l3 5-9 11L3 9l3-5z"/><path d="M3 9h18M12 20L8.5 9 12 4l3.5 5L12 20"/></svg></div>
+    <strong>效果保障</strong><span>科學方案 · 效果看得見</span>
+  </div>
+</section>
+{% endblock %}

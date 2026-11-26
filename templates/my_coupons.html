@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_coupon.html" import coupon_card with context %}
+{% block title %}我的優惠券 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% block content %}
+<h1>我的優惠券</h1>
+<div class="tabs">
+  <a href="{{ url_for('my_coupons', tab='usable') }}" class="{{ 'on' if tab == 'usable' }}">可使用（{{ counts.usable }}）</a>
+  <a href="{{ url_for('my_coupons', tab='used') }}" class="{{ 'on' if tab == 'used' }}">已使用（{{ counts.used }}）</a>
+  <a href="{{ url_for('my_coupons', tab='expired') }}" class="{{ 'on' if tab == 'expired' }}">已過期（{{ counts.expired }}）</a>
+</div>
+<div class="coupon-list">
+  {% for c in rows %}{{ coupon_card(c) }}{% else %}
+  <div class="card empty">沒有{{ {'usable': '可使用', 'used': '已使用', 'expired': '已過期'}[tab] }}的優惠券</div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}線上預約 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% block content %}
+<h1>線上預約</h1>
+<p class="muted">嗨，{{ current_user.name }}！選擇想要的療程與時間，三步驟完成預約。</p>
+
+<form method="post" id="booking-form" class="steps"
+      data-min="{{ min_date }}" data-max="{{ max_date }}"
+      data-closed-weekdays="{{ closed_weekdays|tojson|forceescape }}"
+      data-closed-dates="{{ closed_dates|tojson|forceescape }}">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <input type="hidden" name="date" value="">
+  <input type="hidden" name="time" value="">
+  <input type="hidden" name="confirm_notice" value="">
+  {% if S.booking_notice.strip() %}
+  <div class="modal" id="notice-modal" hidden role="dialog" aria-modal="true" aria-labelledby="notice-title">
+    <div class="modal-box">
+      <div class="modal-icon">!</div>
+      <h2 id="notice-title">預約須知</h2>
+      <p class="notice-text">{{ S.booking_notice }}</p>
+      <div class="notice-summary muted small" id="notice-summary"></div>
+      <label class="checkbox notice-check"><input type="checkbox" id="notice-ok"> 我已閱讀並確認以上內容</label>
+      <div class="actions modal-actions">
+        <button type="button" class="btn ghost" id="notice-cancel">返回修改</button>
+        <button type="button" class="btn" id="notice-confirm" disabled>確認預約</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <section class="step">
+    <h2>選擇服務</h2>
+    <p class="muted small" style="margin-top:-6px">點選主項目展開，再選擇想做的子項目</p>
+    <div class="cat-list">
+      {% for c in catalog %}
+      {% if c.single %}
+        {% set s = c.services[0] %}
+        <div class="svc-option cat-single">
+          <input type="radio" name="service_id" id="svc{{ s.id }}" value="{{ s.id }}"
+                 data-name="{{ s.full_name }}" data-duration="{{ s.duration }}" data-price="{{ s.price }}"
+                 {{ 'checked' if preselect == s.id }}>
+          <label for="svc{{ s.id }}">
+            <strong>{{ c.name }}</strong>
+            {% if s.description %}<span class="muted">{{ s.description }}</span>{% endif %}
+          </label>
+        </div>
+      {% else %}
+        <details class="cat" name="cat" {{ 'open' if preselect in c.ids }}>
+          <summary>
+            <span><strong>{{ c.name }}</strong>{% if c.description %}<span class="muted small cat-desc">{{ c.description }}</span>{% endif %}</span>
+            <span class="cat-count">{{ c.services|length }} 項<span class="chev"></span></span>
+          </summary>
+          <div class="svc-options sub">
+            {% for s in c.services %}
+            <div class="svc-option">
+              <input type="radio" name="service_id" id="svc{{ s.id }}" value="{{ s.id }}"
+                     data-name="{{ s.full_name }}" data-duration="{{ s.duration }}" data-price="{{ s.price }}"
+                     {{ 'checked' if preselect == s.id }}>
+              <label for="svc{{ s.id }}">
+                <strong>{{ s.name }}</strong>
+                {% if s.description %}<span class="muted">{{ s.description }}</span>{% endif %}
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+        </details>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if coupons %}
+  <section class="step">
+    <h2>使用優惠券（選填）</h2>
+    <div class="coupon-pick">
+      <label class="cp-opt"><input type="radio" name="user_coupon_id" value="" {{ 'checked' if not pre_coupon }}>
+        <span><strong>不使用優惠券</strong></span></label>
+      {% for c in coupons %}
+      <label class="cp-opt"><input type="radio" name="user_coupon_id" value="{{ c.id }}"
+             data-services="{{ c.services|map(attribute='id')|join(',') }}" data-name="{{ c.name }}"
+             data-price="{{ c.price|money }}" {{ 'checked' if pre_coupon == c.id }}>
+        <span>
+          <strong>{{ c.name }}</strong> <span class="cp-price">{{ c.price|money }}</span>
+          <span class="muted small cp-items">適用：{{ c.services|map(attribute='name')|join('、') }}{% if c.expires_at %} · 至 {{ c.expires_at }}{% endif %}</span>
+          <span class="cp-na small">此券不適用於目前選擇的項目</span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="step">
+    <h2>選擇日期</h2>
+    <div class="date-strip" id="date-strip"></div>
+    <div class="date-other"><span class="muted">其他日期：</span><input type="date" id="date-other" min="{{ min_date }}" max="{{ max_date }}"></div>
+  </section>
+
+  <section class="step">
+    <h2>選擇時間</h2>
+    <div id="slots"></div>
+  </section>
+
+  <section class="step">
+    <h2>備註（選填）</h2>
+    <textarea name="note" maxlength="500" placeholder="例如：肌膚狀況、過敏史、想指定的美容師…"></textarea>
+  </section>
+
+  <div class="summary-bar">
+    <div class="sum-text" id="sum-text"></div>
+    <button class="btn lg" id="submit-btn" disabled>確認預約</button>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='booking.js') }}"></script>{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}發佈活動公告 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('admin_messages') }}">← 公告信件</a></p>
+<h1>發佈活動公告</h1>
+<p class="muted small">公告會出現在所有會員的收件箱（包含之後才註冊的新會員）。簡體字會自動轉成繁體。</p>
+<form method="post" enctype="multipart/form-data" class="card">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <div class="field"><label for="title">標題</label><input id="title" type="text" name="title" maxlength="200" value="{{ form.title }}" required placeholder="例如：12 月聖誕限定優惠"></div>
+  <div class="field"><label for="body">內容</label><textarea id="body" name="body" rows="8" placeholder="活動內容、日期、注意事項…">{{ form.body }}</textarea></div>
+  <div class="field"><label for="image">活動海報（選填）</label><input id="image" type="file" name="image" accept="image/*"><div class="hint">JPG / PNG / WEBP，10MB 以內</div></div>
+  <button class="btn lg">發佈公告</button>
+</form>
+{% endblock %}

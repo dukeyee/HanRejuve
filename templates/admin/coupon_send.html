@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}發送優惠券 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('admin_messages') }}">← 公告信件</a></p>
+<h1>發送優惠券</h1>
+<p class="muted small">優惠券會隨一封信寄到會員的收件箱，並存入他的「我的優惠券」。</p>
+<form method="post" class="card" id="send-form">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <div class="field"><label for="cp">優惠券</label>
+    <select id="cp" name="coupon_id" required>
+      <option value="">請選擇</option>
+      {% for c in coupons %}
+      <option value="{{ c.id }}" data-name="{{ c.name }}" {{ 'selected' if (form.get('coupon_id') or pre_coupon)|string == c.id|string }}>{{ c.name }}（{{ c.price|money }}）{{ '・每人限一次' if c.once_per_user }}</option>
+      {% endfor %}
+    </select>
+    {% if not coupons %}<div class="hint">還沒有啟用中的優惠券，請先到「優惠券」新增。</div>{% endif %}
+  </div>
+  <div class="field"><label>收件人</label>
+    <label class="checkbox"><input type="radio" name="target" value="all" {{ 'checked' if not pre_users and form.get('target') != 'some' }}> 所有會員（{{ members|length }} 位）</label>
+    <label class="checkbox"><input type="radio" name="target" value="some" {{ 'checked' if pre_users or form.get('target') == 'some' }}> 指定會員</label>
+  </div>
+  <div class="field" id="pick-box">
+    <input type="search" id="member-filter" placeholder="搜尋姓名 / 電話 / Email" style="margin-bottom:8px">
+    <div class="member-picks">
+      {% for m in members %}
+      <label class="checkbox" data-q="{{ (m.name ~ ' ' ~ m.phone ~ ' ' ~ m.email)|lower }}">
+        <input type="checkbox" name="users" value="{{ m.id }}" {{ 'checked' if m.id in pre_users }}>
+        {{ m.name }} <span class="muted small">{{ m.phone|phone }} · {{ m.email }}</span>
+      </label>
+      {% else %}<p class="muted">尚無會員</p>{% endfor %}
+    </div>
+  </div>
+  <div class="field"><label for="title">信件標題</label><input id="title" type="text" name="title" maxlength="200" value="{{ form.title }}" placeholder="留白則自動使用「送你一張優惠券：券名」"></div>
+  <div class="field"><label for="body">信件內容（選填）</label><textarea id="body" name="body" rows="4">{{ form.body }}</textarea></div>
+  <button class="btn lg">發送</button>
+</form>
+<script>
+(function () {
+  const box = document.getElementById('pick-box');
+  const radios = document.querySelectorAll('input[name=target]');
+  const sync = () => { box.hidden = document.querySelector('input[name=target]:checked').value !== 'some'; };
+  radios.forEach(r => r.addEventListener('change', sync)); sync();
+  document.getElementById('member-filter').addEventListener('input', e => {
+    const q = e.target.value.trim().toLowerCase();
+    box.querySelectorAll('label[data-q]').forEach(l => { l.hidden = q && !l.dataset.q.includes(q); });
+  });
+  const form = document.getElementById('send-form');
+  const updateConfirm = () => {
+    const all = document.querySelector('input[name=target]:checked').value === 'all';
+    const n = all ? {{ members|length }} : box.querySelectorAll('input[name=users]:checked').length;
+    form.dataset.confirm = document.documentElement.lang === 'en' ? `Send to ${n} members?` : `確定要發送給 ${n} 位會員嗎？`;
+  };
+  form.addEventListener('change', updateConfirm); updateConfirm();
+})();
+</script>
+{% endblock %}

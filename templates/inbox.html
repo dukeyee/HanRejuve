@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}收件箱 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>收件箱</h1>
+  <div class="actions">
+    <a class="btn ghost sm" href="{{ url_for('my_coupons') }}">我的優惠券</a>
+    {% if unread %}
+    <form method="post" action="{{ url_for('inbox_read_all') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button class="btn ghost sm">全部標示已讀</button></form>
+    {% endif %}
+  </div>
+</div>
+<div class="card msg-list">
+  {% for m in rows %}
+  <a class="msg-row {{ 'unread' if not m.is_read }}" href="{{ url_for('inbox_message', mid=m.id) }}">
+    <span class="msg-dot"></span>
+    <span class="msg-main">
+      <span class="msg-title">{{ m.title }}</span>
+      <span class="muted small">{{ m.body[:60] }}{% if m.body|length > 60 %}…{% endif %}</span>
+    </span>
+    <span class="msg-meta">
+      <span class="badge {{ 'pending' if m.kind == 'coupon' else 'completed' }}">{{ '優惠券' if m.kind == 'coupon' else '公告' }}</span>
+      <span class="muted small">{{ m.created_at[:10] }}</span>
+    </span>
+  </a>
+  {% else %}
+  <div class="empty">目前沒有信件</div>
+  {% endfor %}
+</div>
+{% endblock %}

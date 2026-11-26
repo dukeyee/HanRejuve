@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ '編輯' if cp else '新增' }}優惠券 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('admin_coupons') }}">← 優惠券</a></p>
+<h1>{{ '編輯優惠券' if cp else '新增優惠券' }}</h1>
+{% set f = request.form if request.method == 'POST' else None %}
+<form method="post" enctype="multipart/form-data" class="card">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <div class="field"><label for="name">名稱</label><input id="name" type="text" name="name" maxlength="100" required
+       value="{{ f.name if f else (cp.name if cp else '') }}" placeholder="例如：新粉·體驗卡"></div>
+  <div class="field"><label for="desc">說明</label><textarea id="desc" name="description" rows="3">{{ f.description if f else (cp.description if cp else '') }}</textarea></div>
+  <div class="row">
+    <div class="field"><label for="price">體驗價</label><input id="price" type="number" name="price" min="0" required value="{{ f.price if f else (cp.price if cp else '') }}"></div>
+    <div class="field"><label for="vd">有效天數（領取後幾天內可用）</label><input id="vd" type="number" name="valid_days" min="0" required value="{{ f.valid_days if f else (cp.valid_days if cp else 90) }}"><div class="hint">0 = 永久有效</div></div>
+  </div>
+  <div class="field"><label>可使用此券的項目（客人選擇其中一個）</label>
+    <div class="svc-checks">
+      {% for c in catalog if c.services %}
+      <fieldset><legend>{{ c.name }}</legend><div class="checks">
+        {% for s in c.services %}
+        <label class="checkbox"><input type="checkbox" name="services" value="{{ s.id }}" {{ 'checked' if s.id in selected }}> {{ s.name }}</label>
+        {% endfor %}
+      </div></fieldset>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="field"><label for="image">中文海報</label>
+    {% if cp and cp.image %}<img class="thumb" style="width:120px;height:auto;margin-bottom:8px" src="{{ url_for('static', filename=cp.image) }}" alt="">
+      <label class="checkbox small"><input type="checkbox" name="remove_image" value="1"> 移除目前圖片</label>{% endif %}
+    <input id="image" type="file" name="image" accept="image/*"><div class="hint">上傳新圖片會取代原本的圖片</div>
+  </div>
+  <div class="field"><label for="image_en">英文海報（網站切換成英文時顯示）</label>
+    {% if cp and cp.image_en %}<img class="thumb" style="width:120px;height:auto;margin-bottom:8px" src="{{ url_for('static', filename=cp.image_en) }}" alt="">
+      <label class="checkbox small"><input type="checkbox" name="remove_image_en" value="1"> 移除目前圖片</label>{% endif %}
+    <input id="image_en" type="file" name="image_en" accept="image/*"><div class="hint">沒有英文海報時，英文介面會顯示中文海報</div>
+  </div>
+  <div class="field">
+    <label class="checkbox"><input type="checkbox" name="signup_gift" value="1" {{ 'checked' if (f.get('signup_gift') if f else (cp.signup_gift if cp else 0)) }}> 新人禮：新會員註冊時自動贈送</label>
+    <label class="checkbox"><input type="checkbox" name="once_per_user" value="1" {{ 'checked' if (f.get('once_per_user') if f else (cp.once_per_user if cp else 1)) }}> 每人限領一次</label>
+    <label class="checkbox"><input type="checkbox" name="active" value="1" {{ 'checked' if (f.get('active') if f else (cp.active if cp else 1)) }}> 啟用（停用後不能再發送，已發出的券仍可使用）</label>
+  </div>
+  <button class="btn lg">儲存</button>
+</form>
+{% endblock %}

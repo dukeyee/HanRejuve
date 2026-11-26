@@ -1,0 +1,25 @@
+# 資料庫：含會員個資、預約、管理員密碼雜湊，不可上傳
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# 機密：登入加密金鑰、初始管理員密碼
+secret_key.txt
+admin_initial_password.txt
+.env
+
+# 管理員上傳的圖片（只保留資料夾）
+static/uploads/*
+!static/uploads/.keep
+
+# Python / 編輯器 / 工具
+__pycache__/
+*.pyc
+.venv/
+venv/
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

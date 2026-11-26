@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}會員登入 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+<div class="card auth-card">
+  <img class="auth-logo" src="{{ url_for('static', filename='img/monogram.png') }}" alt="{{ S.shop_name }}">
+  <h1>會員登入</h1>
+  <form method="post">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="field"><label for="email">Email</label><input id="email" type="email" name="email" value="{{ email }}" required autocomplete="email"></div>
+    <div class="field"><label for="password">密碼</label><input id="password" type="password" name="password" required autocomplete="current-password"></div>
+    <button class="btn block lg">登入</button>
+  </form>
+  <p class="center muted small" style="margin-top:18px">還不是會員？<a href="{{ url_for('register', next=request.args.get('next')) }}">立即註冊</a></p>
+</div>
+{% endblock %}

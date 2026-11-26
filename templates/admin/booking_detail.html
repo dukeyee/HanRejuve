@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import booking_table, status_btn with context %}
+{% block title %}預約 #{{ b.id }} · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('admin_bookings', date=b.date) }}">← 回到 {{ b.date }} 的預約</a></p>
+<div class="page-head">
+  <h1>預約 #{{ b.id }}</h1>
+  <span class="badge {{ b.status }}" style="font-size:.95rem">{{ STATUS_LABELS[b.status] }}</span>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>預約內容</h2>
+    <dl class="info">
+      <dt>服務</dt><dd>{{ b.service_name }}</dd>
+      <dt>日期</dt><dd>{{ b.date }}（週{{ b.date|weekday }}）</dd>
+      <dt>時間</dt><dd>{{ b.start_time }} – {{ b.end_time }}（{{ b.duration }} 分鐘）</dd>
+      <dt>價格</dt><dd>{{ b.price|money }}{% if b.coupon_name %} <span class="muted small">（原價 {{ b.list_price|money }}）</span>{% endif %}</dd>
+      {% if b.coupon_name %}<dt>優惠券</dt><dd>🎫 {{ b.coupon_name }}</dd>{% endif %}
+      <dt>顧客備註</dt><dd>{{ b.note or '—' }}</dd>
+      <dt>建立時間</dt><dd>{{ b.created_at }}</dd>
+    </dl>
+  </div>
+  <div class="card">
+    <h2>顧客</h2>
+    <dl class="info">
+      <dt>姓名</dt><dd>{{ b.customer_name }}{% if not b.user_id %} <span class="muted small">(非會員)</span>{% endif %}</dd>
+      <dt>電話</dt><dd>{% if b.customer_phone %}<a href="tel:{{ b.customer_phone }}">{{ b.customer_phone|phone }}</a>{% else %}—{% endif %}</dd>
+      <dt>Email</dt><dd>{{ b.customer_email or '—' }}</dd>
+    </dl>
+    {% if b.user_id %}<p style="margin-bottom:0"><a href="{{ url_for('admin_member_detail', uid=b.user_id) }}">查看會員紀錄 →</a></p>{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>變更狀態</h2>
+  <div class="actions">
+    {% for k, v in STATUS_LABELS.items() if k != b.status %}
+      {{ status_btn(b.id, k, '設為「' ~ v ~ '」', 'danger' if k in ('cancelled', 'no_show') else ('' if k in ('confirmed','completed') else 'ghost')) }}
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>內部備註</h2>
+  <form method="post">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="field"><textarea name="admin_note" placeholder="只有管理員看得到，例如：使用產品、肌膚狀況、負責美容師…">{{ b.admin_note }}</textarea></div>
+    <button class="btn">儲存備註</button>
+  </form>
+</div>
+{% endblock %}

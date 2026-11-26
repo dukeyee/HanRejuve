@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}會員 · {{ S.shop_name }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>會員</h1><span class="muted">共 {{ rows|length }} 位</span></div>
+<form class="filters" method="get">
+  <div class="field"><input type="search" name="q" value="{{ q }}" placeholder="搜尋姓名 / 電話 / Email"></div>
+  <button class="btn">搜尋</button>
+</form>
+<div class="card flush-mobile">
+  <div class="table-wrap">
+  <table class="responsive">
+    <thead><tr><th>姓名</th><th>電話</th><th>Email</th><th>預約次數</th><th>最近預約</th><th>加入日期</th></tr></thead>
+    <tbody>
+    {% for m in rows %}
+    <tr class="clickable" onclick="location.href='{{ url_for('admin_member_detail', uid=m.id) }}'">
+      <td data-label="姓名"><a href="{{ url_for('admin_member_detail', uid=m.id) }}">{{ m.name }}</a>{% if m.is_admin %} <span class="badge admin">管理員</span>{% endif %}</td>
+      <td data-label="電話">{{ m.phone|phone }}</td>
+      <td data-label="Email">{{ m.email }}</td>
+      <td data-label="預約次數">{{ m.cnt }}</td>
+      <td data-label="最近預約">{{ m.last_date or '—' }}</td>
+      <td data-label="加入日期">{{ m.created_at[:10] }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" class="empty">沒有符合的會員</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}優惠券 · {{ S.shop_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>優惠券</h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('admin_coupon_edit') }}">＋ 新增優惠券</a>
+    <a class="btn ghost" href="{{ url_for('admin_coupon_send') }}">🎫 發送優惠券</a>
+  </div>
+</div>
+<p class="muted small">勾選「新人禮」的優惠券，會在會員註冊時自動放進他的收件箱。會員預約時選擇優惠券，就以體驗價計算；預約取消時優惠券自動退回。</p>
+<div class="card flush-mobile">
+  <div class="table-wrap">
+  <table class="responsive">
+    <thead><tr><th>海報</th><th>名稱</th><th>體驗價</th><th>適用項目</th><th>有效期</th><th>設定</th><th>已發 / 已用</th><th></th></tr></thead>
+    <tbody>
+    {% for c in rows %}
+    <tr>
+      <td data-label="海報"><div class="actions" style="gap:6px">{% if c.image %}<img class="thumb" src="{{ url_for('static', filename=c.image) }}" alt="" title="Chinese">{% endif %}{% if c.image_en %}<img class="thumb" src="{{ url_for('static', filename=c.image_en) }}" alt="" title="English">{% endif %}</div></td>
+      <td data-label="名稱"><strong>{{ c.name }}</strong>{% if not c.active %} <span class="badge cancelled">停用</span>{% endif %}</td>
+      <td data-label="體驗價">{{ c.price|money }}</td>
+      <td data-label="適用項目" class="small">{{ c.services|map(attribute='name')|join('、') or '—' }}</td>
+      <td data-label="有效期">{{ '領取後 %d 天'|format(c.valid_days) if c.valid_days else '永久' }}</td>
+      <td data-label="設定">
+        {% if c.signup_gift %}<span class="badge pending">新人禮</span>{% endif %}
+        {% if c.once_per_user %}<span class="badge completed">每人限一次</span>{% endif %}
+      </td>
+      <td data-label="已發 / 已用">{{ c.issued }} / {{ c.used }}</td>
+      <td data-label="">
+        <div class="actions">
+          <a class="btn ghost sm" href="{{ url_for('admin_coupon_edit', cid=c.id) }}">編輯</a>
+          {% if c.active %}<a class="btn sm" href="{{ url_for('admin_coupon_send', coupon=c.id) }}">發送</a>{% endif %}
+        </div>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8" class="empty">尚無優惠券</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

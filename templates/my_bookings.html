@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}我的預約 · {{ S.shop_name }}{% endblock %}
+{% block main_class %}medium{% endblock %}
+{% macro item(b) %}
+<div class="booking-item">
+  <div class="booking-date">
+    <div class="dm">{{ b.date[5:7]|int }}月</div>
+    <div class="dd">{{ b.date[8:10]|int }}</div>
+    <div class="dw">週{{ b.date|weekday }}</div>
+  </div>
+  <div class="booking-body">
+    <h3>{{ b.service_name }} <span class="badge {{ b.status }}">{{ STATUS_LABELS[b.status] }}</span></h3>
+    <div class="muted small">{{ b.date }} · {{ b.start_time }}{% if b.coupon_name %} · 體驗價 {{ b.price|money }}{% endif %}</div>
+    {% if b.coupon_name %}<div class="small" style="color:var(--gold)">🎫 已使用優惠券：{{ b.coupon_name }}</div>{% endif %}
+    {% if b.note %}<div class="small">備註：{{ b.note }}</div>{% endif %}
+  </div>
+  {% if b.can_cancel %}
+  <form method="post" action="{{ url_for('cancel_booking', bid=b.id) }}" data-confirm="確定要取消這筆預約嗎？">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button class="btn danger sm">取消</button>
+  </form>
+  {% endif %}
+</div>
+{% endmacro %}
+{% block content %}
+<div class="page-head"><h1>我的預約</h1><a class="btn" href="{{ url_for('book') }}">＋ 新增預約</a></div>
+
+<div class="card">
+  <h2>即將到來</h2>
+  {% for b in upcoming %}{{ item(b) }}{% else %}
+  <div class="empty">目前沒有預約。<br><a href="{{ url_for('book') }}">馬上預約一次放鬆時光 →</a></div>
+  {% endfor %}
+  {% if upcoming %}<p class="muted small" style="margin:10px 0 0">如需取消，請於預約時間 {{ S.cancel_hours }} 小時前操作；之後請來電{% if S.shop_phone %} {{ S.shop_phone }}{% endif %}。</p>{% endif %}
+</div>
+
+{% if past %}
+<div class="card">
+  <h2>歷史紀錄</h2>
+  {% for b in past %}{{ item(b) }}{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}服務項目 · {{ S.shop_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>服務項目</h1>
+  <a class="btn" href="{{ url_for('admin_service_edit') }}">＋ 新增子項目</a>
+</div>
+<p class="muted small">服務分成「主項目」和「子項目」。客人點開主項目後選擇子項目預約。主項目下只有一個同名子項目時，客人可以直接選擇，不用展開。時長與價格不會顯示給客人：時長用來計算時段是否有空位，價格只用於營收統計。</p>
+
+<details class="card" style="margin-bottom:18px">
+  <summary style="cursor:pointer"><strong>＋ 新增主項目</strong></summary>
+  <form method="post" action="{{ url_for('admin_categories') }}" style="margin-top:14px">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="add">
+    <div class="row">
+      <div class="field"><label>主項目名稱</label><input type="text" name="name" required></div>
+      <div class="field"><label>排序（數字小的排前面）</label><input type="number" name="sort_order" value="{{ catalog|length }}"></div>
+    </div>
+    <div class="field"><label>簡介（選填）</label><input type="text" name="description"></div>
+    <button class="btn">新增主項目</button>
+  </form>
+</details>
+
+{% for c in catalog %}
+<div class="card flush-mobile">
+  <div class="page-head" style="margin-bottom:10px">
+    <h2 style="margin:0">{{ c.name }}
+      {% if not c.active %}<span class="badge cancelled">停用</span>{% endif %}
+      <span class="muted small">（{{ c.services|length }} 個子項目）</span></h2>
+    {% if c.id %}<a class="btn ghost sm" href="{{ url_for('admin_service_edit', category=c.id) }}">＋ 新增子項目</a>{% endif %}
+  </div>
+
+  {% if c.id %}
+  <details style="margin-bottom:12px">
+    <summary class="muted small" style="cursor:pointer">編輯主項目</summary>
+    <form method="post" action="{{ url_for('admin_categories') }}" style="margin-top:10px">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="id" value="{{ c.id }}">
+      <div class="row">
+        <div class="field"><label>名稱</label><input type="text" name="name" value="{{ c.name }}" required></div>
+        <div class="field"><label>排序</label><input type="number" name="sort_order" value="{{ c.sort_order }}"></div>
+      </div>
+      <div class="field"><label>簡介</label><input type="text" name="description" value="{{ c.description }}"></div>
+      <div class="field"><label class="checkbox"><input type="checkbox" name="active" value="1" {{ 'checked' if c.active }}> 開放線上預約</label></div>
+      <div class="actions">
+        <button class="btn sm" name="action" value="update">儲存</button>
+        <button class="btn danger sm" name="action" value="delete" formnovalidate data-confirm="確定刪除主項目「{{ c.name }}」？（需先清空子項目）">刪除主項目</button>
+      </div>
+    </form>
+  </details>
+  {% endif %}
+
+  {% if c.services %}
+  <div class="table-wrap">
+  <table class="responsive">
+    <thead><tr><th>排序</th><th>子項目</th><th>預計時長</th><th>參考價格</th><th>狀態</th><th>預約數</th><th></th></tr></thead>
+    <tbody>
+    {% for s in c.services %}
+    <tr>
+      <td data-label="排序">{{ s.sort_order }}</td>
+      <td data-label="子項目"><strong>{{ s.name }}</strong></td>
+      <td data-label="時長">{{ s.duration }} 分鐘</td>
+      <td data-label="價格">{{ s.price|money }}</td>
+      <td data-label="狀態">{% if s.active %}<span class="badge confirmed">開放</span>{% else %}<span class="badge cancelled">停用</span>{% endif %}</td>
+      <td data-label="預約數">{{ counts.get(s.id, 0) }}</td>
+      <td data-label=""><a class="btn ghost sm" href="{{ url_for('admin_service_edit', sid=s.id) }}">編輯</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="muted">尚無子項目</p>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}
