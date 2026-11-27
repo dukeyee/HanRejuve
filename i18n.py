@@ -27,6 +27,7 @@ PHRASES = {
     "Serena緊緻提升": "Serena Firming Lift",
     "9D黃金炮": "9D Golden Probe",
     "AI量子儀": "AI Quantum Device",
+    "免費面診": "Free Consultation",
     "輕抗衰": "Light Anti-Aging",
     "膠原支架": "Collagen Scaffold",
     "祛抬頭紋": "Forehead Wrinkle Removal",

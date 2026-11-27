@@ -243,6 +243,7 @@ CREATE TABLE IF NOT EXISTS closed_dates (
 # 主項目 → 子項目。沒有子項目的主項目會直接成為一個可預約的服務。
 # 時長預設 60 分鐘、價格 0（顯示「價格洽詢」），請到後台修改。
 SEED_CATALOG = [
+    ("免費面診", [], 30),   # 第三個值：每次佔用的分鐘數（沒寫就是 60）
     ("輕抗衰", ["膠原支架", "祛抬頭紋", "祛魚尾紋", "祛川字紋", "淚溝激活", "額頭精雕",
                "V臉", "臉部提升", "祛法令紋", "祛嘴角肉", "雙下巴溶脂"]),
     ("皮膚管理", ["嬰兒水光針", "愛馬仕水光", "凹凸洞", "淡化疤印", "淡化黑斑"]),
@@ -255,11 +256,12 @@ SEED_CATALOG = [
 
 
 def seed_catalog(db):
-    for ci, (cat, items) in enumerate(SEED_CATALOG):
+    for ci, (cat, items, *rest) in enumerate(SEED_CATALOG):
+        minutes = rest[0] if rest else 60
         cid = db.execute("INSERT INTO categories(name, sort_order) VALUES (?, ?)", (cat, ci)).lastrowid
         for si, name in enumerate(items or [cat]):
             db.execute("INSERT INTO services(category_id, name, duration, price, sort_order) VALUES (?,?,?,?,?)",
-                       (cid, name, 60, 0, si))
+                       (cid, name, minutes, 0, si))
 
 
 # 預設優惠券（依海報內容建立）。services 以子項目名稱對應。
