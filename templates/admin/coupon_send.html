@@ -11,7 +11,7 @@
     <select id="cp" name="coupon_id" required>
       <option value="">請選擇</option>
       {% for c in coupons %}
-      <option value="{{ c.id }}" data-name="{{ c.name }}" {{ 'selected' if (form.get('coupon_id') or pre_coupon)|string == c.id|string }}>{{ c.name }}（{{ c.price|money }}）{{ '・每人限一次' if c.once_per_user }}</option>
+      <option value="{{ c.id }}" data-name="{{ c.name }}" {{ 'selected' if (form.get('coupon_id') or pre_coupon)|string == c.id|string }}>{{ c|cname }}（{{ c.price|money }}）{{ '・每人限一次' if c.once_per_user }}</option>
       {% endfor %}
     </select>
     {% if not coupons %}<div class="hint">還沒有啟用中的優惠券，請先到「優惠券」新增。</div>{% endif %}

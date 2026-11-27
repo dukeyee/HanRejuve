@@ -11,7 +11,7 @@
   <div class="booking-body">
     <h3>{{ b.service_name }} <span class="badge {{ b.status }}">{{ STATUS_LABELS[b.status] }}</span></h3>
     <div class="muted small">{{ b.date }} · {{ b.start_time }}{% if b.coupon_name %} · 體驗價 {{ b.price|money }}{% endif %}</div>
-    {% if b.coupon_name %}<div class="small" style="color:var(--gold)">🎫 已使用優惠券：{{ b.coupon_name }}</div>{% endif %}
+    {% if b.coupon_name %}<div class="small" style="color:var(--gold)">🎫 已使用優惠券：{{ b|cname('coupon_name') }}</div>{% endif %}
     {% if b.note %}<div class="small">備註：{{ b.note }}</div>{% endif %}
     {% if b.service_note or pics %}
     <div class="service-record">

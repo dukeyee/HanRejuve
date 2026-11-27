@@ -174,6 +174,7 @@ CREATE TABLE IF NOT EXISTS settings (
 CREATE TABLE IF NOT EXISTS coupons (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    name_en TEXT NOT NULL DEFAULT '',           -- 英文名稱（英文介面時顯示）
     description TEXT NOT NULL DEFAULT '',
     price INTEGER NOT NULL DEFAULT 0,          -- 使用此券的體驗價
     image TEXT,                                 -- static/ 底下的路徑（中文海報）
@@ -267,16 +268,16 @@ def seed_catalog(db):
 # 預設優惠券（依海報內容建立）。services 以子項目名稱對應。
 # 前三張為新人禮（註冊自動贈送）；全部永久有效、每人限領一次。
 SEED_COUPONS = [
-    dict(name="新粉·體驗卡", price=499, image="img/promo-newfan.jpg", image_en="img/promo-newfan-en.jpg",
+    dict(name="新粉·體驗卡", name_en="New Customer Experience Card", price=499, image="img/promo-newfan.jpg", image_en="img/promo-newfan-en.jpg",
          description="打造媽生幼態臉，以下項目任選其中一個：淚溝激活、抬頭紋去皺、激活印堂凹陷、魚尾紋去皺、雙下巴脂肪剝離術。雙人行 RM788。",
          services=["淚溝激活", "祛抬頭紋", "祛川字紋", "祛魚尾紋", "雙下巴溶脂"]),
-    dict(name="鑽石嬰兒肌水光煥膚", price=688, image="img/promo-hydra.jpg", image_en="img/promo-hydra-en.jpg",
+    dict(name="鑽石嬰兒肌水光煥膚", name_en="Diamond Baby Skin Glow", price=688, image="img/promo-hydra.jpg", image_en="img/promo-hydra-en.jpg",
          description="新客專享・多重功效體驗卡。雙重高效補水美肌護理，煥發水光透亮肌。每人僅限體驗一次。",
          services=["嬰兒水光針"]),
-    dict(name="9D黃金炮 新人體驗", price=299, image="img/promo-9d.jpg", image_en="img/promo-9d-en.jpg",
+    dict(name="9D黃金炮 新人體驗", name_en="9D Golden Probe New Customer Exclusive Price", price=299, image="img/promo-9d.jpg", image_en="img/promo-9d-en.jpg",
          description="黑科技煥膚・重塑年輕肌。去皺抗衰、補水嫩膚、緊緻提拉。",
          services=["9D黃金炮"]),
-    dict(name="無創穴位瘦身", price=788, image="img/promo-acupoint.jpg", image_en="img/promo-acupoint-en.jpg",
+    dict(name="無創穴位瘦身", name_en="Acu-Point Weight Loss", price=788, image="img/promo-acupoint.jpg", image_en="img/promo-acupoint-en.jpg",
          description="精準科技・安全溶脂・塑造自信曲線。一次體驗 RM788｜四次療程 RM2688（一個療程）。送價值 RM988 一次雙下巴溶脂。",
          services=["穴位瘦全身"], signup_gift=0),
 ]
@@ -285,9 +286,9 @@ SEED_COUPONS = [
 def seed_coupons(db):
     for c in SEED_COUPONS:
         cid = db.execute(
-            "INSERT INTO coupons(name, description, price, image, image_en, valid_days, signup_gift, once_per_user) "
-            "VALUES (?,?,?,?,?,?,?,1)",
-            (c["name"], c["description"], c["price"], c["image"], c.get("image_en"),
+            "INSERT INTO coupons(name, name_en, description, price, image, image_en, valid_days, signup_gift, once_per_user) "
+            "VALUES (?,?,?,?,?,?,?,?,1)",
+            (c["name"], c.get("name_en", ""), c["description"], c["price"], c["image"], c.get("image_en"),
              c.get("valid_days", 0), c.get("signup_gift", 1))).lastrowid
         for sname in c["services"]:
             row = db.execute("SELECT id FROM services WHERE name = ?", (sname,)).fetchone()
@@ -343,6 +344,10 @@ def init_db():
         db.execute("ALTER TABLE coupons ADD COLUMN image_en TEXT")
         for c in SEED_COUPONS:
             db.execute("UPDATE coupons SET image_en = ? WHERE image = ? AND image_en IS NULL", (c["image_en"], c["image"]))
+    if "name_en" not in ccols:   # 優惠券英文名稱
+        db.execute("ALTER TABLE coupons ADD COLUMN name_en TEXT NOT NULL DEFAULT ''")
+        for c in SEED_COUPONS:
+            db.execute("UPDATE coupons SET name_en = ? WHERE name = ? AND name_en = ''", (c["name_en"], c["name"]))
     # 新人體驗券只建立一次（之後管理員刪除也不會再自動出現）
     if not db.execute("SELECT 1 FROM settings WHERE key = 'coupons_seeded'").fetchone():
         if db.execute("SELECT COUNT(*) FROM coupons").fetchone()[0] == 0:
@@ -521,7 +526,7 @@ BOOKING_SELECT = f"""
 SELECT b.*,
        {SERVICE_FULL_NAME} AS service_name,
        COALESCE(b.final_price, s.price) AS price, s.price AS list_price, s.duration,
-       cp.name AS coupon_name,
+       cp.name AS coupon_name, cp.name_en AS coupon_name_en,
        COALESCE(u.name, b.guest_name) AS customer_name,
        COALESCE(u.phone, b.guest_phone) AS customer_phone,
        u.email AS customer_email
@@ -560,7 +565,7 @@ def coupon_state(uc):
 
 def user_coupons_for(user_id, where="", params=()):
     rows = get_db().execute(
-        "SELECT uc.*, c.name, c.description, c.price, c.image, c.image_en FROM user_coupons uc "
+        "SELECT uc.*, c.name, c.name_en, c.description, c.price, c.image, c.image_en FROM user_coupons uc "
         "JOIN coupons c ON c.id = uc.coupon_id WHERE uc.user_id = ? " + where +
         " ORDER BY uc.issued_at DESC, uc.id DESC", (user_id, *params)).fetchall()
     smap = coupon_services_map({r["coupon_id"] for r in rows})
@@ -844,6 +849,17 @@ def inject_globals():
 def weekday_filter(ds):
     d = parse_date(ds)
     return WEEKDAY_LABELS[d.weekday()] if d else ""
+
+
+@app.template_filter("cname")
+def cname_filter(obj, key="name"):
+    """優惠券名稱：英文介面顯示英文名稱（沒填則顯示中文）。"""
+    if obj is None:
+        return ""
+    get = obj.get if hasattr(obj, "get") else (lambda k, d=None: obj[k] if k in obj.keys() else d)
+    if is_english() and (get(key + "_en") or "").strip():
+        return get(key + "_en")
+    return get(key) or ""
 
 
 @app.template_filter("money")
@@ -1600,7 +1616,7 @@ def admin_coupon_edit(cid=None):
                     image = ""
                 if f.get("remove_image_en"):
                     image_en = ""
-                vals = dict(name=name[:100], description=f.get("description", "").strip()[:2000], price=price,
+                vals = dict(name=name[:100], name_en=f.get("name_en", "").strip()[:100], description=f.get("description", "").strip()[:2000], price=price,
                             valid_days=valid_days, signup_gift=1 if f.get("signup_gift") else 0,
                             once_per_user=1 if f.get("once_per_user") else 0, active=1 if f.get("active") else 0)
                 if image is not None:

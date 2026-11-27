@@ -7,14 +7,14 @@
 {% if lang != 'en' and c.image_en %}{% set _ = gallery.append([url_for('static', filename=c.image_en), 'English']) %}{% endif %}
 <div class="coupon {{ c.state }}">
   {% if img %}
-  <a class="coupon-img" href="{{ url_for('static', filename=img) }}" data-viewer="{{ gallery|tojson|forceescape }}" aria-label="{{ c.name }}">
-    <img src="{{ url_for('static', filename=img) }}" alt="{{ c.name }}" loading="lazy">
+  <a class="coupon-img" href="{{ url_for('static', filename=img) }}" data-viewer="{{ gallery|tojson|forceescape }}" aria-label="{{ c|cname }}">
+    <img src="{{ url_for('static', filename=img) }}" alt="{{ c|cname }}" loading="lazy">
     {% if gallery|length > 1 %}<span class="coupon-img-tag">中 / EN</span>{% endif %}
   </a>
   {% endif %}
   <div class="coupon-body">
     <div class="coupon-price"><small>體驗價</small> {{ c.price|money }}</div>
-    <h3>{{ c.name }}</h3>
+    <h3>{{ c|cname }}</h3>
     {% if c.description %}<p class="muted small">{{ c.description }}</p>{% endif %}
     {% if c.services %}<div class="small coupon-items"><span class="muted">適用項目：</span>{{ c.services|map(attribute='name')|join('、') }}</div>{% endif %}
     <div class="coupon-foot">

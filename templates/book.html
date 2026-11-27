@@ -78,10 +78,10 @@
         <span><strong>不使用優惠券</strong></span></label>
       {% for c in coupons %}
       <label class="cp-opt"><input type="radio" name="user_coupon_id" value="{{ c.id }}"
-             data-services="{{ c.services|map(attribute='id')|join(',') }}" data-name="{{ c.name }}"
+             data-services="{{ c.services|map(attribute='id')|join(',') }}" data-name="{{ c|cname }}"
              data-price="{{ c.price|money }}" {{ 'checked' if pre_coupon == c.id }}>
         <span>
-          <strong>{{ c.name }}</strong> <span class="cp-price">{{ c.price|money }}</span>
+          <strong>{{ c|cname }}</strong> <span class="cp-price">{{ c.price|money }}</span>
           <span class="muted small cp-items">適用：{{ c.services|map(attribute='name')|join('、') }}{% if c.expires_at %} · 至 {{ c.expires_at }}{% endif %}</span>
           <span class="cp-na small">此券不適用於目前選擇的項目</span>
         </span>

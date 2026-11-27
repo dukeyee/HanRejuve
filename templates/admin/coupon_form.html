@@ -7,8 +7,12 @@
 {% set f = request.form if request.method == 'POST' else None %}
 <form method="post" enctype="multipart/form-data" class="card">
   <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-  <div class="field"><label for="name">名稱</label><input id="name" type="text" name="name" maxlength="100" required
-       value="{{ f.name if f else (cp.name if cp else '') }}" placeholder="例如：新粉·體驗卡"></div>
+  <div class="row">
+    <div class="field"><label for="name">中文名稱</label><input id="name" type="text" name="name" maxlength="100" required
+         value="{{ f.name if f else (cp.name if cp else '') }}" placeholder="例如：新粉·體驗卡"><div class="hint">中文介面顯示</div></div>
+    <div class="field"><label for="name_en">英文名稱</label><input id="name_en" type="text" name="name_en" maxlength="100"
+         value="{{ f.name_en if f else (cp.name_en if cp else '') }}" placeholder="e.g. New Customer Experience Card"><div class="hint">英文介面顯示；留白則顯示中文名稱</div></div>
+  </div>
   <div class="field"><label for="desc">說明</label><textarea id="desc" name="description" rows="3">{{ f.description if f else (cp.description if cp else '') }}</textarea></div>
   <div class="row">
     <div class="field"><label for="price">體驗價</label><input id="price" type="number" name="price" min="0" required value="{{ f.price if f else (cp.price if cp else '') }}"></div>

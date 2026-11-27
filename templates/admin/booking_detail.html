@@ -17,7 +17,7 @@
       <dt>日期</dt><dd>{{ b.date }}（週{{ b.date|weekday }}）</dd>
       <dt>時間</dt><dd>{{ b.start_time }}</dd>
       <dt>價格</dt><dd>{{ b.price|money }}{% if b.coupon_name %} <span class="muted small">（原價 {{ b.list_price|money }}）</span>{% endif %}</dd>
-      {% if b.coupon_name %}<dt>優惠券</dt><dd>🎫 {{ b.coupon_name }}</dd>{% endif %}
+      {% if b.coupon_name %}<dt>優惠券</dt><dd>🎫 {{ b|cname('coupon_name') }}</dd>{% endif %}
       <dt>顧客備註</dt><dd>{{ b.note or '—' }}</dd>
       <dt>建立時間</dt><dd>{{ b.created_at }}</dd>
     </dl>

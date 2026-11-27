@@ -47,7 +47,7 @@
     <tbody>
     {% for c in coupons %}
     <tr>
-      <td data-label="優惠券">{{ c.name }}</td>
+      <td data-label="優惠券">{{ c|cname }}</td>
       <td data-label="體驗價">{{ c.price|money }}</td>
       <td data-label="領取日">{{ c.issued_at[:10] }}</td>
       <td data-label="到期日">{{ c.expires_at or '永久' }}</td>

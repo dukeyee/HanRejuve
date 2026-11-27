@@ -17,7 +17,7 @@
     {% for c in rows %}
     <tr>
       <td data-label="海報"><div class="actions" style="gap:6px">{% if c.image %}<img class="thumb" src="{{ url_for('static', filename=c.image) }}" alt="" title="Chinese">{% endif %}{% if c.image_en %}<img class="thumb" src="{{ url_for('static', filename=c.image_en) }}" alt="" title="English">{% endif %}</div></td>
-      <td data-label="名稱"><strong>{{ c.name }}</strong>{% if not c.active %} <span class="badge cancelled">停用</span>{% endif %}</td>
+      <td data-label="名稱"><strong>{{ c|cname }}</strong>{% if lang != 'en' and c.name_en %}<div class="muted small">{{ c.name_en }}</div>{% endif %}{% if not c.active %} <span class="badge cancelled">停用</span>{% endif %}</td>
       <td data-label="體驗價">{{ c.price|money }}</td>
       <td data-label="適用項目" class="small">{{ c.services|map(attribute='name')|join('、') or '—' }}</td>
       <td data-label="有效期">{{ '領取後 %d 天'|format(c.valid_days) if c.valid_days else '永久' }}</td>
